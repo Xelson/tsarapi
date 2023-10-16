@@ -2,6 +2,7 @@
     "git.detectSubmodulesLimit": 20,
     "amxxpawn.compiler.includePaths": [
         "${workspaceRoot}/.compiler/include",
+        "${workspaceRoot}/deps/AmxxEasyHttp/amxx/scripting/include",
         "${workspaceRoot}/src"
     ],
 }
