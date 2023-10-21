@@ -13,18 +13,19 @@ new const VERSION[] 	= "0.0.1"
 new const AUTHOR[]		= "ekke bea?"
 
 const MAX_TOKEN_LEN = 64;
-new const CONFIG_FILE_NAME[] = "tsarapi.cfg"
+new const CONFIG_FILE_NAME[] = "tsarapi.cfg";
 
-new g_token[MAX_TOKEN_LEN]
+new g_token[MAX_TOKEN_LEN], g_pluginId;
 
 enum _:STRUCT_QUEUE_EVENT {
 	QUEUE_EVENT_NAME[32],
-	EzJSON:QUEUE_EVENT_DATA
+	EzJSON:QUEUE_EVENT_DATA,
+	QUEUE_EVENT_HAPPENED_AT
 }
 new Array:g_arrQueueEvents
 
 public plugin_init() {
-	register_plugin(PLUGIN, VERSION, AUTHOR, "https://tsarvar.com");
+	g_pluginId = register_plugin(PLUGIN, VERSION, AUTHOR, "https://tsarvar.com");
 
 	g_arrQueueEvents = ArrayCreate(STRUCT_QUEUE_EVENT);
 
@@ -58,10 +59,34 @@ config_exec() {
 		server_cmd("exec ^"%s^"", configFilePath);
 }
 
-public queue_event_emit(name[], EzJSON:_MOVE_data) {
-	new entry[STRUCT_QUEUE_EVENT];
+queue_event_emit(name[], EzJSON:_MOVE_data, replaceIfHandler[] = "", data[] = "") {
+	new entry[STRUCT_QUEUE_EVENT], index = -1;
+
+	if(strlen(replaceIfHandler) > 0) {
+		new Array:arrEventsOfType = ArrayCreate();
+		for(new i; i < ArraySize(g_arrQueueEvents); i++) {
+			ArrayGetArray(g_arrQueueEvents, i, entry)
+			if(!equal(entry[QUEUE_EVENT_NAME], name)) continue;
+
+			ArrayPushCell(arrEventsOfType, entry[QUEUE_EVENT_DATA]);
+		}
+
+		if(ArraySize(arrEventsOfType) > 0) {
+			new ret, frwd = CreateOneForward(g_pluginId, replaceIfHandler, FP_CELL, FP_ARRAY);
+			ExecuteForward(frwd, ret, arrEventsOfType, data);
+			DestroyForward(frwd);
+
+			if(ret >= -1 && ret < ArraySize(g_arrQueueEvents)) index = ret
+			else abort(AMX_ERR_BOUNDS, "Returned an invalid index %d for events array", ret);
+		}	
+	}
+	
 	copy(entry[QUEUE_EVENT_NAME], charsmax(entry[QUEUE_EVENT_NAME]), name);
 	entry[QUEUE_EVENT_DATA] = _MOVE_data;
+	entry[QUEUE_EVENT_HAPPENED_AT] = get_systime();
+
+	if(index >= 0)
+		ArraySetArray(g_arrQueueEvents, index, entry);
 
 	return ArrayPushArray(g_arrQueueEvents, entry);
 }
