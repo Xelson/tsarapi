@@ -150,4 +150,10 @@ queue_events_http_post() {
 	ezjson_gc_destroy(gc);
 }
 
-@on_queue_events_post_complete() {}
+@on_queue_events_post_complete(EzHttpRequest:request_id) {
+    if (ezhttp_get_error_code(request_id) != EZH_OK) {
+        new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
+		abort(AMX_ERR_GENERAL, "http response error: %s", error);
+        return
+    }
+}

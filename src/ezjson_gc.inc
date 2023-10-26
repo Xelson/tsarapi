@@ -23,7 +23,7 @@ stock ezjson_gc_push(EzJSON_GC:gc, EzJSON:handle) {
 	ArrayPushCell(Array:gc, handle);
 }
 
-stock operator+(EzJSON_GC:gc, EzJSON:handle) {
+stock EzJSON_GC:operator+(EzJSON_GC:gc, EzJSON:handle) {
 	ezjson_gc_push(gc, handle);
-	return 0;
+	return gc;
 }
