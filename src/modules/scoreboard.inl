@@ -17,31 +17,8 @@ public module_scoreboard_init() {
 }
 
 @module_scoreboard_check_updates() {
-	on_check_updates();
-}
+	if(!isModuleEnabled) return;
 
-@module_scoreboard_on_client_disconnect(id) {
-	on_client_disconnect(id);
-}
-
-@module_scoreboard_on_round_end() {
-	on_round_end();
-}
-
-static on_client_disconnect(id) {
-	new EzJSON:data = ezjson_init_object();
-	ezjson_object_set_number(data, "player_slotid", id);
-
-	queue_event_emit("player_disconnected", data);
-}
-
-static on_round_end() {
-	new EzJSON:data = ezjson_init_object();
-
-	queue_event_emit("round_end", data);
-}
-
-static on_check_updates() {
 	static plName[MAX_PLAYERS][MAX_NAME_LENGTH], plTeam[MAX_PLAYERS], 
 		plScore[MAX_PLAYERS], plDeaths[MAX_PLAYERS]
 
@@ -61,6 +38,22 @@ static on_check_updates() {
 			plDeaths[id] = get_player_team(id);
 		}
 	}
+}
+
+@module_scoreboard_on_client_disconnect(id) {
+	if(!isModuleEnabled) return;
+
+	new EzJSON:data = ezjson_init_object();
+	ezjson_object_set_number(data, "player_slotid", id);
+
+	queue_event_emit("player_disconnected", data);
+}
+
+@module_scoreboard_on_round_end() {
+	if(!isModuleEnabled) return;
+
+	new EzJSON:data = ezjson_init_object();
+	queue_event_emit("round_end", data);
 }
 
 static on_player_state_changed(id) {
