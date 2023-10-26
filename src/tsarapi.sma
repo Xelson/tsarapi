@@ -27,11 +27,9 @@ enum _:STRUCT_QUEUE_EVENT {
 	EzJSON:QUEUE_EVENT_DATA,
 	QUEUE_EVENT_HAPPENED_AT
 }
-new Array:g_arrQueueEvents
+new Array:g_arrQueueEvents;
 
-enum (+=32) {
-	TASKID_QUEUE_EVENTS_WORKER = 32
-}
+new TASKID_QUEUE_EVENTS_WORKER;
 
 public plugin_init() {
 	g_pluginId = register_plugin(PLUGIN, VERSION, AUTHOR, "https://tsarvar.com");
@@ -45,6 +43,8 @@ public plugin_init() {
 	module_scoreboard_init();
 
 	queue_events_worker_init();
+
+	TASKID_QUEUE_EVENTS_WORKER = generate_task_id();
 }
 
 public plugin_cfg() {
@@ -108,12 +108,12 @@ public queue_events_worker_init() {
 
 @task_send_queue_events() {
 	if(ArraySize(g_arrQueueEvents) > 0) {
-		queue_events_http_post();
+		queue_events_http_post(g_arrQueueEvents);
 		ArrayClear(g_arrQueueEvents);
 	}
 }
 
-queue_events_http_post() {
+queue_events_http_post(Array:events) {
 	new EzHttpOptions:ezhttpOpt = ezhttp_create_options();
 	ezhttp_option_set_header(ezhttpOpt, "Content-Type", "application/json");
 	ezhttp_option_set_timeout(ezhttpOpt, 3000);
@@ -128,8 +128,8 @@ queue_events_http_post() {
 	new EzJSON:items = ezjson_init_array();
 	gc += items;
 
-	for(new i, event[STRUCT_QUEUE_EVENT]; i < ArraySize(g_arrQueueEvents); i++) {
-		ArrayGetArray(g_arrQueueEvents, i, event);
+	for(new i, event[STRUCT_QUEUE_EVENT]; i < ArraySize(events); i++) {
+		ArrayGetArray(events, i, event);
 
 		new EzJSON:item = ezjson_init_object();
 		gc += item;
@@ -151,9 +151,9 @@ queue_events_http_post() {
 }
 
 @on_queue_events_post_complete(EzHttpRequest:request_id) {
-    if (ezhttp_get_error_code(request_id) != EZH_OK) {
-        new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
+	if(ezhttp_get_error_code(request_id) != EZH_OK) {
+		new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
 		abort(AMX_ERR_GENERAL, "http response error: %s", error);
-        return
-    }
+		return
+	}
 }
