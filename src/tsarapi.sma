@@ -48,8 +48,9 @@ public plugin_cfg() {
 	module_killfeed_cfg();
 	module_scoreboard_cfg();
 
-	config_exec();
 	sql_init();
+
+	config_exec();
 }
 
 new g_sqlHost[64], g_sqlUser[64], g_sqlPassword[128], g_sqlDatabase[64];
@@ -71,21 +72,16 @@ static sql_init() {
 	hook_cvar_change(cvarPass, "@on_sql_credential_changed");
 	hook_cvar_change(cvarDb, "@on_sql_credential_changed");
 
-	set_task(0.1, "@task_sql_tuple_init", generate_task_id());
-}
-
-@on_sql_credential_changed() {
-	log_amx("Detected a change of the SQL credentials. Recreating the tuple.");
 	sql_connection_make_tuple();
 }
 
-@task_sql_tuple_init() {
+@on_sql_credential_changed() {
 	sql_connection_make_tuple();
 }
 
 static sql_connection_make_tuple() {
 	if(g_sqlTuple != Empty_Handle) SQL_FreeHandle(g_sqlTuple);
-	g_sqlTuple = SQL_MakeDbTuple(g_sqlHost, g_sqlUser, g_sqlPassword, g_sqlDatabase);
+	g_sqlTuple = SQL_MakeDbTuple(g_sqlHost, g_sqlUser, g_sqlPassword, g_sqlDatabase, 1);
 
 	scheduler_worker_sql_tuple_init();
 }
@@ -93,7 +89,7 @@ static sql_connection_make_tuple() {
 sql_make_query(const query[], const handler[], const data[] = "", len = 0) {
 	ASSERT(g_sqlTuple, "Trying to send SQL query without connection tuple");
 
-	SQL_ThreadQuery(g_sqlTuple, query, handler, data, len);
+	SQL_ThreadQuery(g_sqlTuple, handler, query, data, len);
 }
 
 static config_exec() {
@@ -103,8 +99,10 @@ static config_exec() {
 	new configFilePath[PLATFORM_MAX_PATH];
 	formatex(configFilePath, charsmax(configFilePath), "%s/%s", cfgDir, CONFIG_FILE_NAME);
 
-	if(file_exists(configFilePath)) 
+	if(file_exists(configFilePath)) {
 		server_cmd("exec ^"%s^"", configFilePath);
+		server_exec();
+	}
 }
 
 enum _:STRUCT_QUEUE_EVENT {
@@ -208,11 +206,13 @@ static queue_events_http_post(Array:events) {
 }
 
 enum _:STRUCT_SCHEDULER_TASK {
-	SCHEDULER_TASK_NAME[32],
+	SCHEDULER_TASK_NAME[32], // DONT CHANGE THE POSITION
+	SCHEDULER_TASK_ID,
 	EzJSON:SCHEDULER_TASK_STATE,
-	SCHEDULER_TASK_EXECUTING_AT,
 	SCHEDULER_TASK_TIMER_ID,
-	SCHEDULER_TASK_HANDLER
+	SCHEDULER_TASK_HANDLER,
+	SCHEDULER_TASK_EXECUTING_AT,
+	SCHEDULER_TASK_GET_EXEC_TIME
 }
 new Array:g_arrSheduledTasks
 
@@ -220,9 +220,12 @@ static scheduler_worker_init() {
 	g_arrSheduledTasks = ArrayCreate(STRUCT_SCHEDULER_TASK);
 }
 
-scheduler_task_define(const name[], const initialState[], const executingHandler[], executingAt) {
+scheduler_task_define(
+	const name[], const initialState[], 
+	const executingHandler[], const getExecutingTimeHandler[]
+) {
 	ASSERT(
-		ArrayFindString(g_arrSheduledTasks, name) == -1, 
+		scheduler_task_id_get_by_name(name) == -1,
 		"Trying to duplicate declaration of the %s task", name
 	);
 
@@ -232,10 +235,12 @@ scheduler_task_define(const name[], const initialState[], const executingHandler
 	new EzJSON:root = ezjson_parse(initialState);
 	ASSERT(root != EzInvalid_JSON, "Invalid initial state on the %s task declaration", name);
 
+	task[SCHEDULER_TASK_ID] = scheduler_tasks_count();
 	task[SCHEDULER_TASK_STATE] = root;
-	task[SCHEDULER_TASK_EXECUTING_AT] = executingAt;
 	task[SCHEDULER_TASK_TIMER_ID] = 0;
-	task[SCHEDULER_TASK_HANDLER] = CreateOneForward(g_pluginId, executingHandler, FP_CELL)
+	task[SCHEDULER_TASK_HANDLER] = CreateOneForward(g_pluginId, executingHandler, FP_CELL);
+	task[SCHEDULER_TASK_GET_EXEC_TIME] = CreateOneForward(g_pluginId, getExecutingTimeHandler);
+	task[SCHEDULER_TASK_EXECUTING_AT] = _scheduler_task_get_next_execution_time(task);
 
 	scheduler_task_cache_merge(task);
 }
@@ -254,9 +259,51 @@ scheduler_task_get_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ArrayGetArray(g_arrSheduledTasks, taskId, task);
 }
 
-scheduler_task_sql_commit_changes(taskId) {
+static scheduler_task_set_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
 
+	ArraySetArray(g_arrSheduledTasks, taskId, task);
+}
+
+static scheduler_task_push_data(task[STRUCT_SCHEDULER_TASK]) {
+	return ArrayPushArray(g_arrSheduledTasks, task);
+}
+
+EzJSON:scheduler_task_get_state(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+	return task[SCHEDULER_TASK_STATE];
+}
+
+scheduler_task_set_state(taskId, EzJSON:st) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+	task[SCHEDULER_TASK_STATE] = st;
+	scheduler_task_set_data(taskId, task);
+}
+
+scheduler_task_get_executing_at(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	return task[SCHEDULER_TASK_EXECUTING_AT];
+}
+
+scheduler_task_id_get_by_name(const name[]) {
+	return ArrayFindString(g_arrSheduledTasks, name);
+}
+
+scheduler_task_set_executing_at(taskId, executingAt) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	task[SCHEDULER_TASK_EXECUTING_AT] = executingAt;
+	_scheduler_task_continue_executing(task);
+
+	scheduler_task_set_data(taskId, task);
+}
+
+scheduler_task_sql_commit_changes(taskId) {
 	new task[STRUCT_SCHEDULER_TASK];
 	scheduler_task_get_data(taskId, task);
 
@@ -282,17 +329,31 @@ scheduler_task_sql_commit_changes(taskId) {
 	ASSERT(failstate == TQUERY_SUCCESS, error);
 }
 
-scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
-	new index = ArrayFindString(g_arrSheduledTasks, task[SCHEDULER_TASK_NAME]);
-	if(index != -1) ArraySetArray(g_arrSheduledTasks, index, task);
-	else ArrayPushArray(g_arrSheduledTasks, task);
+static scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
+	new taskId = scheduler_task_id_get_by_name(task[SCHEDULER_TASK_NAME]);
+	if(taskId != -1) scheduler_task_set_data(taskId, task);
+	else taskId = scheduler_task_push_data(task);
+	return taskId;
+}
+
+scheduler_task_get_next_execution_time(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	return _scheduler_task_get_next_execution_time(task);
+}
+
+static _scheduler_task_get_next_execution_time(task[STRUCT_SCHEDULER_TASK]) {
+	new time;
+	ExecuteForward(task[SCHEDULER_TASK_GET_EXEC_TIME], time);
+	return time;
 }
 
 static scheduler_worker_sql_tuple_init() {
  	sql_make_query(
 		_fmt("CREATE TABLE IF NOT EXISTS `%s` ( \ 
 			name VARCHAR(32) PRIMARY KEY NOT NULL, \
-			state TEXT NOT NULL DEFAULT '{}', \
+			state TEXT NOT NULL, \
 			executing_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP \
 		)", SCHEDULER_TABLE_NAME),
 		"@on_scheduler_worker_sql_tables_created"
@@ -310,7 +371,6 @@ static scheduler_worker_sql_tuple_init() {
 
 @on_scheduler_worker_sql_sync_cache(failstate, Handle:query, error[]) {
 	scheduler_tasks_cache_merge_from_sql(query);
-	scheduler_tasks_schedule_executing();
 
 	ASSERT(failstate == TQUERY_SUCCESS, error);
 }
@@ -319,14 +379,18 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 	new buffer[1024];
 	enum { field_name, field_state, field_executing_at };
 
+	new Array:arrCachedTaskIds = ArrayCreate();
+
 	for(new task[STRUCT_SCHEDULER_TASK]; SQL_MoreResults(query); SQL_NextRow(query)) {
-		// Логика на удаление лишних записей из БД, если соответствующих записей не оказалось в кеше (не декларированы)
-		// Нужно отменить мёрж, если таска в кеше нет
+		SQL_ReadResult(query, field_name, buffer, charsmax(buffer));
 
-		// В то же время, если в базе нет какого-то таска из кеша (они были декларированы до того, как были сохранены в БД),
-		// мы делаем scheduler_task_sql_commit_changes для них, чтобы синхронизировать с БД
+		new taskId = scheduler_task_id_get_by_name(buffer);
+		if(taskId == -1) {
+			// Может быть добавить код для чистки устаревших тасков	
+			continue;
+		}
 
-		SQL_ReadResult(query, field_name, task[SCHEDULER_TASK_NAME], charsmax(task[SCHEDULER_TASK_NAME]));
+		scheduler_task_get_data(taskId, task);
 		SQL_ReadResult(query, field_state, buffer, charsmax(buffer));
 		
 		new EzJSON:root = ezjson_parse(buffer);
@@ -337,28 +401,42 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		task[SCHEDULER_TASK_EXECUTING_AT] = parse_time(buffer, TIMESTAMP_FORMAT);
 
 		scheduler_task_cache_merge(task);
+		_scheduler_task_continue_executing(task);
+
+		ArrayPushCell(arrCachedTaskIds, taskId);
 	}
+
+	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
+		if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
+			scheduler_task_sql_commit_changes(taskId);
+			scheduler_task_continue_executing(taskId);
+		}
+	}
+
+	ArrayDestroy(arrCachedTaskIds);
 }
 
-static scheduler_tasks_schedule_executing() {
-	for(new i, task[STRUCT_SCHEDULER_TASK]; i < ArraySize(g_arrSheduledTasks); i++) {
-		ArrayGetArray(g_arrSheduledTasks, i, task);
-
-		new data[1]; data[0] = i;
-
-		task[SCHEDULER_TASK_TIMER_ID] = set_task(
-			float(task[SCHEDULER_TASK_EXECUTING_AT] - get_systime()), 
-			"@task_scheduler_execute", 
-			generate_task_id(),
-			data, sizeof(data)
-		);
-	}
-}
-
-@task_scheduler_execute(data[1]) {
-	new taskId = data[0], task[STRUCT_SCHEDULER_TASK];
+scheduler_task_continue_executing(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
 	scheduler_task_get_data(taskId, task);
 
+	_scheduler_task_continue_executing(task);
+
+	scheduler_task_set_data(taskId, task);
+}
+
+static _scheduler_task_continue_executing(task[STRUCT_SCHEDULER_TASK]) {
+	remove_task(task[SCHEDULER_TASK_TIMER_ID]);
+
+	task[SCHEDULER_TASK_TIMER_ID] = set_task(
+		float(task[SCHEDULER_TASK_EXECUTING_AT] - get_systime()), 
+		"@task_scheduler_execute", 
+		generate_task_id(),
+		task, sizeof(task)
+	);
+}
+
+@task_scheduler_execute(task[STRUCT_SCHEDULER_TASK]) {
 	new ret;
-	ExecuteForward(task[SCHEDULER_TASK_HANDLER], ret, taskId);
+	ExecuteForward(task[SCHEDULER_TASK_HANDLER], ret, task[SCHEDULER_TASK_ID]);
 }

@@ -54,3 +54,10 @@ stock ASSERT(any:predicate, err[], any:...) {
 	new buffer[192]; vformat(buffer, charsmax(buffer), err, 3);
 	if(!predicate) abort(AMX_ERR_NATIVE, buffer);
 }
+
+get_next_systime_in(const time[]) {
+	static const SECONDS_IN_DAY = 86400;
+	new targetTime = parse_time(time, "%H:%M:%S");
+	
+	return get_systime() > targetTime ? targetTime + SECONDS_IN_DAY : targetTime;
+}
