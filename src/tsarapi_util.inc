@@ -43,3 +43,14 @@ stock generate_task_id(step = 1) {
 	id += step;
 	return id;
 }
+
+stock _fmt(format[], any:...) {
+	static buffer[1024];
+	vformat(buffer, charsmax(buffer), format, 2);
+	return buffer;
+}
+
+stock ASSERT(any:predicate, err[], any:...) {
+	new buffer[192]; vformat(buffer, charsmax(buffer), err, 3);
+	if(!predicate) abort(AMX_ERR_NATIVE, buffer);
+}
