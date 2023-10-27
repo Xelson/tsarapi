@@ -237,7 +237,7 @@ scheduler_task_define(const name[], const initialState[], const executingHandler
 	task[SCHEDULER_TASK_TIMER_ID] = 0;
 	task[SCHEDULER_TASK_HANDLER] = CreateOneForward(g_pluginId, executingHandler, FP_CELL)
 
-	scheduler_task_cache_push(task);
+	scheduler_task_cache_merge(task);
 }
 
 scheduler_tasks_count() {
@@ -282,12 +282,7 @@ scheduler_task_sql_commit_changes(taskId) {
 	ASSERT(failstate == TQUERY_SUCCESS, error);
 }
 
-static scheduler_task_cache_push(task[STRUCT_SCHEDULER_TASK]) {
-	if(ArrayFindString(g_arrSheduledTasks, task[SCHEDULER_TASK_NAME]) == -1)
-		ArrayPushArray(g_arrSheduledTasks, task);
-}
-
-static scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
+scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
 	new index = ArrayFindString(g_arrSheduledTasks, task[SCHEDULER_TASK_NAME]);
 	if(index != -1) ArraySetArray(g_arrSheduledTasks, index, task);
 	else ArrayPushArray(g_arrSheduledTasks, task);
