@@ -160,13 +160,7 @@ queue_event_emit(name[], EzJSON:_MOVE_data, replaceIfHandler[] = "", data[] = ""
 	return ArrayPushArray(g_arrQueueEvents, entry);
 }
 
-static queue_events_http_post(Array:events) {
-	new EzHttpOptions:ezhttpOpt = ezhttp_create_options();
-	ezhttp_option_set_header(ezhttpOpt, "Content-Type", "application/json");
-	ezhttp_option_set_timeout(ezhttpOpt, 3000);
-
-	new EzJSON_GC:gc = ezjson_gc_init();
-
+EzJSON:request_api_object_init(EzJSON_GC:gc) {
 	new EzJSON:root = ezjson_init_object();
 	gc += root;
 
@@ -174,6 +168,26 @@ static queue_events_http_post(Array:events) {
 
 	new EzJSON:items = ezjson_init_array();
 	gc += items;
+
+	ezjson_object_set_value(root, "items", items);
+
+	return root;
+}
+
+request_api_object_post(EzJSON:object, const handler[], const data[] = "", len = 0) {
+	new EzHttpOptions:ezhttpOpt = ezhttp_create_options();
+	ezhttp_option_set_header(ezhttpOpt, "Content-Type", "application/json");
+	ezhttp_option_set_timeout(ezhttpOpt, 3000);
+	ezhttp_option_set_body_from_json(ezhttpOpt, object);
+	if(len) ezhttp_option_set_user_data(ezhttpOpt, data, len);
+
+	ezhttp_post(API_URL, handler, ezhttpOpt);
+}
+
+static queue_events_http_post(Array:events) {
+	new EzJSON_GC:gc = ezjson_gc_init();
+	new EzJSON:root = request_api_object_init(gc);
+	new EzJSON:items = ezjson_object_get_value(root, "items");
 
 	for(new i, event[STRUCT_QUEUE_EVENT]; i < ArraySize(events); i++) {
 		ArrayGetArray(events, i, event);
@@ -189,20 +203,14 @@ static queue_events_http_post(Array:events) {
 		ezjson_array_append_value(items, item);
 	}
 
-	ezjson_object_set_value(root, "items", items);
-	ezhttp_option_set_body_from_json(ezhttpOpt, root);
-
-	ezhttp_post(API_URL, "@on_queue_events_post_complete", ezhttpOpt);
+	request_api_object_post(root, "@on_queue_events_post_complete");
 
 	ezjson_gc_destroy(gc);
 }
 
 @on_queue_events_post_complete(EzHttpRequest:request_id) {
-	if(ezhttp_get_error_code(request_id) != EZH_OK) {
-		new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
-		abort(AMX_ERR_GENERAL, "http response error: %s", error);
-		return
-	}
+	new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
+	ASSERT(ezhttp_get_error_code(request_id) == EZH_OK, "http response error: %s", error);
 }
 
 enum _:STRUCT_SCHEDULER_TASK {
