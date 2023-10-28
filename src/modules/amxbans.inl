@@ -32,7 +32,7 @@ public module_amxbans_init() {
 }
 
 @module_amxbans_get_executing_time() {
-	return get_next_systime_in("00:00:00");
+	return get_next_systime_in(_fmt("%d:00:00", random_num(0, 12)));
 }
 
 @module_amxbans_execute_task(taskId) {
@@ -114,6 +114,11 @@ static fetch_table(taskId, page, limit) {
 
 		ezjson_array_append_value(items, item);
 	}
+
+	new EzJSON:st = scheduler_task_get_state(taskId)
+	new page = ezjson_object_get_number(st, "current_page");
+
+	ezjson_object_set_number(root, "offset", page * LIMIT);
 
 	new userData[2]; 
 	userData[0] = taskId;
@@ -216,8 +221,6 @@ sql_get_bans_table() {
 
 sql_make_bans_query(const query[], const handler[], const data[] = "", len = 0) {
 	ASSERT(g_sqlHandle, "Trying to send SQL query without connection tuple");
-
-	server_print(query);
 
 	SQL_ThreadQuery(g_sqlHandle, handler, query, data, len);
 }
