@@ -51,32 +51,18 @@ public plugin_cfg() {
 	sql_init();
 
 	config_exec();
+
+	sql_connection_make_tuple();
 }
 
 new g_sqlHost[64], g_sqlUser[64], g_sqlPassword[128], g_sqlDatabase[64];
 new Handle:g_sqlTuple;
 
 static sql_init() {
-	new cvarHost = register_cvar("tsarapi_sql_host", "", FCVAR_PROTECTED)
-	new cvarUser = register_cvar("tsarapi_sql_user", "", FCVAR_PROTECTED)
-	new cvarPass = register_cvar("tsarapi_sql_pass", "", FCVAR_PROTECTED)
-	new cvarDb = register_cvar("tsarapi_sql_db", "", FCVAR_PROTECTED)
-
-	bind_pcvar_string(cvarHost, g_sqlHost, charsmax(g_sqlHost));
-	bind_pcvar_string(cvarUser, g_sqlUser, charsmax(g_sqlUser));
-	bind_pcvar_string(cvarPass, g_sqlPassword, charsmax(g_sqlPassword));
-	bind_pcvar_string(cvarDb, g_sqlDatabase, charsmax(g_sqlDatabase));
-
-	hook_cvar_change(cvarHost, "@on_sql_credential_changed");
-	hook_cvar_change(cvarUser, "@on_sql_credential_changed");
-	hook_cvar_change(cvarPass, "@on_sql_credential_changed");
-	hook_cvar_change(cvarDb, "@on_sql_credential_changed");
-
-	sql_connection_make_tuple();
-}
-
-@on_sql_credential_changed() {
-	sql_connection_make_tuple();
+	bind_pcvar_string(register_cvar("tsarapi_sql_host", "", FCVAR_PROTECTED), g_sqlHost, charsmax(g_sqlHost));
+	bind_pcvar_string(register_cvar("tsarapi_sql_user", "", FCVAR_PROTECTED), g_sqlUser, charsmax(g_sqlUser));
+	bind_pcvar_string(register_cvar("tsarapi_sql_pass", "", FCVAR_PROTECTED), g_sqlPassword, charsmax(g_sqlPassword));
+	bind_pcvar_string(register_cvar("tsarapi_sql_db", "", FCVAR_PROTECTED), g_sqlDatabase, charsmax(g_sqlDatabase));
 }
 
 static sql_connection_make_tuple() {

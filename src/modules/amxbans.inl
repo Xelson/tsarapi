@@ -7,7 +7,7 @@
 static bool:isModuleEnabled 
 static Handle:g_sqlHandle
 
-static const LIMIT = 1000;
+static const LIMIT = 300;
 static const MAX_PAGES = 10;
 static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
@@ -24,11 +24,15 @@ public module_amxbans_init() {
 		"@module_amxbans_get_executing_time"
 	)
 
+	set_task(0.1, "@module_amxbans_make_bans_tuple", generate_task_id());
+}
+
+@module_amxbans_make_bans_tuple() {
 	g_sqlHandle = sql_make_bans_tuple();
 }
 
 @module_amxbans_get_executing_time() {
-	return get_next_systime_in("1:44:00");
+	return get_next_systime_in("00:00:00");
 }
 
 @module_amxbans_execute_task(taskId) {
@@ -158,9 +162,10 @@ static fetch_table(taskId, page, limit) {
 Handle:sql_make_bans_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
+	new configDir[PLATFORM_MAX_PATH]; 
+	get_configsdir(configDir, charsmax(configDir));
+
 	if(cvar_exists("fb_sql_host")) {
-		new configDir[PLATFORM_MAX_PATH]; 
-		get_configsdir(configDir, charsmax(configDir));
 		server_cmd("exec %s/fb/main.cfg", configDir);
 		server_exec();
 
@@ -182,7 +187,12 @@ Handle:sql_make_bans_tuple() {
 		get_cvar_string("lb_sql_pass", pass, charsmax(pass));
 		get_cvar_string("lb_sql_db", db, charsmax(db));
 	}
-	else return SQL_MakeStdTuple();
+	else {
+		server_cmd("exec %s/sql.cfg", configDir);
+		server_exec();
+		
+		return SQL_MakeStdTuple();
+	}
 
 	return SQL_MakeDbTuple(host, user, pass, db);
 }
@@ -206,6 +216,8 @@ sql_get_bans_table() {
 
 sql_make_bans_query(const query[], const handler[], const data[] = "", len = 0) {
 	ASSERT(g_sqlHandle, "Trying to send SQL query without connection tuple");
+
+	server_print(query);
 
 	SQL_ThreadQuery(g_sqlHandle, handler, query, data, len);
 }
