@@ -6,10 +6,11 @@
 static bool:isModuleEnabled 
 
 public module_scoreboard_cfg() {
-	bind_pcvar_num(register_cvar("tsarapi_send_scoreboard", "", FCVAR_PROTECTED), isModuleEnabled);
 }
 
 public module_scoreboard_init() {
+	bind_pcvar_num(register_cvar("tsarapi_send_scoreboard", "", FCVAR_PROTECTED), isModuleEnabled);
+
 	register_logevent("@module_scoreboard_on_round_end", 2, "1=Round_End");
 	register_forward(FM_ClientDisconnect, "@module_scoreboard_on_client_disconnect", true); 
 

@@ -5,12 +5,12 @@ const MAX_WEAPON_NAME_LEN = 64;
 
 static bool:isModuleEnabled 
 
-public module_killfeed_cfg() {
-	bind_pcvar_num(register_cvar("tsarapi_send_killfeed", "", FCVAR_PROTECTED), isModuleEnabled);
+public module_killfeed_cfg() {	
 }
 
 public module_killfeed_init() {
-	register_message(get_user_msgid("DeathMsg"), "@module_killfeed_on_message_deathmsg")
+	register_message(get_user_msgid("DeathMsg"), "@module_killfeed_on_message_deathmsg");
+	bind_pcvar_num(register_cvar("tsarapi_send_killfeed", "", FCVAR_PROTECTED), isModuleEnabled);
 }
 
 @module_killfeed_on_message_deathmsg(victim, killer) {

@@ -12,11 +12,18 @@ static const MAX_PAGES = 10;
 static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
 
+new static const CVAR_NAME[] = "tsarapi_send_amxbans";
+
 public module_amxbans_cfg() {
-	bind_pcvar_num(register_cvar("tsarapi_send_amxbans", "", FCVAR_PROTECTED), isModuleEnabled);
+	if(isModuleEnabled && !is_supported_plugin_installed()) {
+		set_cvar_num(CVAR_NAME, 0);
+		log_amx("AmxBans/FreshBans/LiteBans are not installed on the server. AmxBans module is disabled.")
+	}
 }
 
 public module_amxbans_init() {
+	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
+
 	scheduler_task_define(
 		"amxbans_fetch",
 		"{^"current_page^":0}",
@@ -36,6 +43,11 @@ public module_amxbans_init() {
 }
 
 @module_amxbans_execute_task(taskId) {
+	if(!g_sqlHandle) {
+		scheduler_task_set_executing_at(taskId, get_systime() + 1);
+		return;
+	}
+
 	if(!isModuleEnabled) {
 		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
 		scheduler_task_sql_commit_changes(taskId);
@@ -237,4 +249,8 @@ static get_local_server_address() {
 		get_user_ip(0, address, charsmax(address));
 
 	return address;
+}
+
+static bool:is_supported_plugin_installed() {
+	return cvar_exists("amxbans_server_address") || cvar_exists("fb_server_ip") || cvar_exists("lb_server_ip");
 }

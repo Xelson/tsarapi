@@ -12,11 +12,20 @@ static const MAX_PAGES = 10;
 static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
 
+new static TASKID_MAKE_TUPLE;
+
+new static const CVAR_NAME[] = "tsarapi_send_csstatsx";
+
 public module_csstatsx_cfg() {
-	bind_pcvar_num(register_cvar("tsarapi_send_csstatsx", "", FCVAR_PROTECTED), isModuleEnabled);
+	if(isModuleEnabled && !cvar_exists("csstats_sql_host")) {
+		set_cvar_num(CVAR_NAME, 0);
+		log_amx("CsStatsX is not installed on the server. CsStatsX module is disabled.")
+	}
 }
 
 public module_csstatsx_init() {
+	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
+
 	scheduler_task_define(
 		"csstatsx_fetch",
 		"{^"current_page^":0}",
@@ -24,7 +33,8 @@ public module_csstatsx_init() {
 		"@module_csstatsx_get_executing_time"
 	)
 
-	set_task(0.1, "@module_csstatsx_make_tuple", generate_task_id());
+	TASKID_MAKE_TUPLE = generate_task_id()
+	set_task(0.1, "@module_csstatsx_make_tuple", TASKID_MAKE_TUPLE);
 }
 
 @module_csstatsx_make_tuple() {
@@ -36,6 +46,11 @@ public module_csstatsx_init() {
 }
 
 @module_csstatsx_execute_task(taskId) {
+	if(!g_sqlHandle) {
+		scheduler_task_set_executing_at(taskId, get_systime() + 1);
+		return;
+	}
+	
 	if(!isModuleEnabled) {
 		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
 		scheduler_task_sql_commit_changes(taskId);
@@ -187,12 +202,10 @@ sql_get_csstatsx_table() {
 static Handle:sql_make_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
-	if(cvar_exists("csstats_sql_host")) {
-		get_cvar_string("csstats_sql_host", host, charsmax(host));
-		get_cvar_string("csstats_sql_user", user, charsmax(user));
-		get_cvar_string("csstats_sql_pass", pass, charsmax(pass));
-		get_cvar_string("csstats_sql_db", db, charsmax(db));
-	}
+	get_cvar_string("csstats_sql_host", host, charsmax(host));
+	get_cvar_string("csstats_sql_user", user, charsmax(user));
+	get_cvar_string("csstats_sql_pass", pass, charsmax(pass));
+	get_cvar_string("csstats_sql_db", db, charsmax(db));
 
 	return SQL_MakeDbTuple(host, user, pass, db);
 }

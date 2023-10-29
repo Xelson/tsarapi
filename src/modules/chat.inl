@@ -7,10 +7,11 @@ const MAX_CHAT_MSG_LEN = 192;
 static bool:isModuleEnabled;
 
 public module_chat_cfg() {
-	bind_pcvar_num(register_cvar("tsarapi_send_chat", "", FCVAR_PROTECTED), isModuleEnabled);
 }
 
 public module_chat_init() {
+	bind_pcvar_num(register_cvar("tsarapi_send_chat", "", FCVAR_PROTECTED), isModuleEnabled);
+
 	register_clcmd("say", "@module_chat_on_clcmd_say");
 	register_clcmd("say_team", "@module_chat_on_clcmd_say_team");
 }
