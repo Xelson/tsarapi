@@ -306,7 +306,7 @@ scheduler_task_sql_commit_changes(taskId) {
 	SQL_QuoteString(Empty_Handle, serializedState, charsmax(serializedState), serializedState);
 
 	new serializedTime[32];
-	format_time(serializedTime, charsmax(serializedTime), TIMESTAMP_FORMAT, task[SCHEDULER_TASK_EXECUTING_AT]);
+	format_timestamp(serializedTime, charsmax(serializedTime), task[SCHEDULER_TASK_EXECUTING_AT]);
 
 	sql_make_query(
 		_fmt("INSERT INTO `%s` VALUES ('%s', '%s', '%s') \
@@ -392,7 +392,7 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		task[SCHEDULER_TASK_STATE] = root;
 
 		SQL_ReadResult(query, field_executing_at, buffer, charsmax(buffer));
-		task[SCHEDULER_TASK_EXECUTING_AT] = parse_time(buffer, TIMESTAMP_FORMAT);
+		task[SCHEDULER_TASK_EXECUTING_AT] = parse_timestamp(buffer);
 
 		scheduler_task_cache_merge(task);
 		_scheduler_task_continue_executing(task);
@@ -433,4 +433,12 @@ static _scheduler_task_continue_executing(task[STRUCT_SCHEDULER_TASK]) {
 @task_scheduler_execute(task[STRUCT_SCHEDULER_TASK]) {
 	new ret;
 	ExecuteForward(task[SCHEDULER_TASK_HANDLER], ret, task[SCHEDULER_TASK_ID]);
+}
+
+format_timestamp(output[], len, time = -1) {
+	return format_time(output, len, TIMESTAMP_FORMAT, time);
+}
+
+parse_timestamp(const input[], time = -1) {
+	return parse_time(input, TIMESTAMP_FORMAT, time);
 }

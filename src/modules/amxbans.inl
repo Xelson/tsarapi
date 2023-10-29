@@ -24,15 +24,15 @@ public module_amxbans_init() {
 		"@module_amxbans_get_executing_time"
 	)
 
-	set_task(0.1, "@module_amxbans_make_bans_tuple", generate_task_id());
+	set_task(0.1, "@module_amxbans_make_tuple", generate_task_id());
 }
 
-@module_amxbans_make_bans_tuple() {
-	g_sqlHandle = sql_make_bans_tuple();
+@module_amxbans_make_tuple() {
+	g_sqlHandle = sql_make_tuple();
 }
 
 @module_amxbans_get_executing_time() {
-	return get_next_systime_in(_fmt("%d:00:00", random_num(0, 12)));
+	return get_next_systime_in(_fmt("%d:00:00", random_num(0, 11)));
 }
 
 @module_amxbans_execute_task(taskId) {
@@ -51,18 +51,18 @@ public module_amxbans_init() {
 static fetch_table(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
-	sql_make_bans_query(
+	sql_make_amxbans_query(
 		_fmt("SELECT bid, player_id, player_nick, admin_id, admin_nick, ban_created, ban_length, ban_reason, ban_kicks, expired \ 
 			FROM `%s` \
 			WHERE server_ip = '%s' \
 			LIMIT %d OFFSET %d \
-		", sql_get_bans_table(), get_local_server_address(), limit, page * limit),
-		"@module_amxbans_sql_get_bans_page",
+		", sql_get_amxbans_table(), get_local_server_address(), limit, page * limit),
+		"@module_amxbans_sql_get_amxbans_page",
 		data, sizeof(data)
 	);
 }
 
-@module_amxbans_sql_get_bans_page(failstate, Handle:query, error[], errnum, data[], size) {
+@module_amxbans_sql_get_amxbans_page(failstate, Handle:query, error[], errnum, data[], size) {
 	ASSERT(failstate == TQUERY_SUCCESS, error);
 
 	new taskId = data[0];
@@ -74,40 +74,35 @@ static fetch_table(taskId, page, limit) {
 		field_ban_kicks, field_is_expired
 	};
 
-	new bid, playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
-		adminSteamId[MAX_AUTHID_LENGTH], adminName[MAX_NAME_LENGTH],
-		banCreated, banLength, banReason[64], banKicks, bool:isExpired
+	new playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
+		adminSteamId[MAX_AUTHID_LENGTH], adminName[MAX_NAME_LENGTH], 
+		banReason[64], banCreatedAt[32];
 
 	new EzJSON_GC:gc = ezjson_gc_init();
 	new EzJSON:root = request_api_object_init(gc);
 	new EzJSON:items = ezjson_object_get_value(root, "items");
 
 	for(; SQL_MoreResults(query); SQL_NextRow(query)) {
-		bid = SQL_ReadResult(query, field_bid);
-		banCreated = SQL_ReadResult(query, field_ban_created);
-		banLength = SQL_ReadResult(query, field_ban_length);
-		banKicks = SQL_ReadResult(query, field_ban_kicks);
-		isExpired = bool:SQL_ReadResult(query, field_is_expired);
-
 		SQL_ReadResult(query, field_ban_reason, banReason, charsmax(banReason));
 		SQL_ReadResult(query, field_player_steamid, playerSteamId, charsmax(playerSteamId));
 		SQL_ReadResult(query, field_player_name, playerName, charsmax(playerName));
 		SQL_ReadResult(query, field_admin_steamid, adminSteamId, charsmax(adminSteamId));
 		SQL_ReadResult(query, field_admin_name, adminName, charsmax(adminName));
+		format_timestamp(banCreatedAt, charsmax(banCreatedAt), SQL_ReadResult(query, field_ban_created));
 
 		new EzJSON:item = ezjson_init_object(); gc += item;
 		new EzJSON:data = ezjson_init_object(); gc += data;
 		
-		ezjson_object_set_number(data, "id", bid);
+		ezjson_object_set_number(data, "id", SQL_ReadResult(query, field_bid));
 		ezjson_object_set_string(data, "player_steamid", playerSteamId);
 		ezjson_object_set_string(data, "player_name", playerName);
 		ezjson_object_set_string(data, "admin_steamid", adminSteamId);
 		ezjson_object_set_string(data, "admin_name", adminName);
 		ezjson_object_set_string(data, "ban_reason", banReason);
-		ezjson_object_set_number(data, "ban_length", banLength);
-		ezjson_object_set_number(data, "ban_kicks", banKicks);
-		ezjson_object_set_number(data, "ban_created_at", banCreated);
-		ezjson_object_set_bool(data, "is_expired", isExpired);
+		ezjson_object_set_number(data, "ban_length", SQL_ReadResult(query, field_ban_length));
+		ezjson_object_set_number(data, "ban_kicks", SQL_ReadResult(query, field_ban_kicks));
+		ezjson_object_set_string(data, "ban_created_at", banCreatedAt);
+		ezjson_object_set_bool(data, "is_expired", bool:SQL_ReadResult(query, field_is_expired));
 
 		ezjson_object_set_string(item, "type", "ban_entry");
 		ezjson_object_set_value(item, "data", data);
@@ -164,7 +159,7 @@ static fetch_table(taskId, page, limit) {
 	scheduler_task_sql_commit_changes(taskId);
 }
 
-Handle:sql_make_bans_tuple() {
+static Handle:sql_make_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
 	new configDir[PLATFORM_MAX_PATH]; 
@@ -202,7 +197,7 @@ Handle:sql_make_bans_tuple() {
 	return SQL_MakeDbTuple(host, user, pass, db);
 }
 
-sql_get_bans_table() {
+sql_get_amxbans_table() {
 	static tableName[64];
 	new prefix[12] = "amx";
 
@@ -219,7 +214,7 @@ sql_get_bans_table() {
 	return tableName;
 }
 
-sql_make_bans_query(const query[], const handler[], const data[] = "", len = 0) {
+sql_make_amxbans_query(const query[], const handler[], const data[] = "", len = 0) {
 	ASSERT(g_sqlHandle, "Trying to send SQL query without connection tuple");
 
 	SQL_ThreadQuery(g_sqlHandle, handler, query, data, len);
