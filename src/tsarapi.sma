@@ -233,7 +233,7 @@ static scheduler_worker_init() {
 		return;
 	}
 
-	server_print("Executing task '%s' (%d)...", taskName, taskId);
+	server_print("Executing task '%s' (id: %d)...", taskName, taskId);
 	scheduler_task_timer_stop(taskId);
 	scheduler_task_execute(taskId);
 }
