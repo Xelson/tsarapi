@@ -23,7 +23,7 @@ public module_chat_init() {
 	read_args(message, charsmax(message));
 	remove_quotes(message);
 
-	on_player_send_message(id, message);
+	module_chat_on_player_send_message(id, message);
 }
 
 @module_chat_on_clcmd_say_team(id) {
@@ -33,10 +33,10 @@ public module_chat_init() {
 	read_args(message, charsmax(message));
 	remove_quotes(message);
 
-	on_player_send_message(id, message, true);
+	module_chat_on_player_send_message(id, message, true);
 }
 
-static on_player_send_message(id, message[MAX_CHAT_MSG_LEN], bool:isTeamChat = false) {
+module_chat_on_player_send_message(id, message[MAX_CHAT_MSG_LEN], bool:isTeamChat = false) {
 	new EzJSON:data = ezjson_init_object();
 	ezjson_object_add_player_props(data, id);
 	ezjson_object_set_string(data, "message", message);

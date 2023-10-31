@@ -21,10 +21,6 @@ public module_csstatsx_cfg() {
 		set_cvar_num(CVAR_NAME, 0);
 		log_amx("CsStatsX is not installed on the server. CsStatsX module is disabled.")
 	}
-}
-
-public module_csstatsx_init() {
-	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
 
 	scheduler_task_define(
 		"csstatsx_fetch",
@@ -32,13 +28,17 @@ public module_csstatsx_init() {
 		"@module_csstatsx_execute_task",
 		"@module_csstatsx_get_executing_time"
 	)
+}
 
+public module_csstatsx_init() {
+	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
+	
 	TASKID_MAKE_TUPLE = generate_task_id()
 	set_task(0.1, "@module_csstatsx_make_tuple", TASKID_MAKE_TUPLE);
 }
 
 @module_csstatsx_make_tuple() {
-	g_sqlHandle = sql_make_tuple();
+	g_sqlHandle = sql_make_csstatsx_tuple();
 }
 
 @module_csstatsx_get_executing_time() {
@@ -52,7 +52,7 @@ public module_csstatsx_init() {
 	}
 	
 	if(!isModuleEnabled) {
-		task_stop_and_schedule_next(taskId);
+		module_csstatsx_task_stop_and_schedule_next(taskId);
 		scheduler_task_sql_commit_changes(taskId);
 		return;
 	}
@@ -60,10 +60,10 @@ public module_csstatsx_init() {
 	new EzJSON:st = scheduler_task_get_state(taskId)
 	new page = ezjson_object_get_number(st, "current_page");
 
-	task_execute_step(taskId, page, LIMIT);
+	module_csstatsx_task_execute_step(taskId, page, LIMIT);
 }
 
-static task_execute_step(taskId, page, limit) {
+module_csstatsx_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_csstatsx_query(
@@ -168,13 +168,13 @@ static task_execute_step(taskId, page, limit) {
 		return;
 	}
 
-	if(isShouldContinueTask) task_continue(taskId);
-	else task_stop_and_schedule_next(taskId);
+	if(isShouldContinueTask) module_csstatsx_task_continue(taskId);
+	else module_csstatsx_task_stop_and_schedule_next(taskId);
 
 	scheduler_task_sql_commit_changes(taskId);
 }
 
-static task_continue(taskId) {
+module_csstatsx_task_continue(taskId) {
 	new EzJSON:st = scheduler_task_get_state(taskId);
 	new page = ezjson_object_get_number(st, "current_page");
 
@@ -185,7 +185,7 @@ static task_continue(taskId) {
 	}
 }
 
-static task_stop_and_schedule_next(taskId) {
+module_csstatsx_task_stop_and_schedule_next(taskId) {
 	new EzJSON:st = scheduler_task_get_state(taskId);
 
 	ezjson_object_set_number(st, "current_page", 0);
@@ -205,7 +205,7 @@ sql_get_csstatsx_table() {
 	return tableName;
 }
 
-static Handle:sql_make_tuple() {
+Handle:sql_make_csstatsx_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
 	get_cvar_string("csstats_sql_host", host, charsmax(host));

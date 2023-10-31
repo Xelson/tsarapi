@@ -31,7 +31,7 @@ public module_scoreboard_init() {
 			|| plScore[id] != get_player_score(id)
 			|| plDeaths[id] != get_player_team(id)
 		) {
-			on_player_state_changed(id);
+			module_scoreboard_on_player_state_changed(id);
 
 			copy(plName[id], charsmax(plName[]), get_player_name(id));
 			plTeam[id] = get_user_team(id);
@@ -57,7 +57,7 @@ public module_scoreboard_init() {
 	queue_event_emit("round_end", data);
 }
 
-static on_player_state_changed(id) {
+module_scoreboard_on_player_state_changed(id) {
 	new EzJSON:object = ezjson_init_object();
 	ezjson_object_add_player_props(object, id);
 	ezjson_object_set_number(object, "player_score", get_player_score(id));

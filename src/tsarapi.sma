@@ -211,10 +211,10 @@ new Array:g_arrSheduledTasks
 static scheduler_worker_init() {
 	g_arrSheduledTasks = ArrayCreate(STRUCT_SCHEDULER_TASK);
 
-	register_srvcmd("tsarapi_start_task", "@on_srvcmd_start_task");
+	register_srvcmd("tsarapi_task_start", "@on_srvcmd_task_start");
 }
 
-@on_srvcmd_start_task() {
+@on_srvcmd_task_start() {
 	new tasksCount = scheduler_tasks_count();
 	if(tasksCount == 0) {
 		server_print("There are no registered tasks");
@@ -233,7 +233,7 @@ static scheduler_worker_init() {
 		return;
 	}
 
-	server_print("Executing task '%s'...", taskName);
+	server_print("Executing task '%s' (%d)...", taskName, taskId);
 	scheduler_task_timer_stop(taskId);
 	scheduler_task_execute(taskId);
 }
@@ -339,10 +339,10 @@ scheduler_task_sql_commit_changes(taskId) {
 	format_timestamp(serializedTime, charsmax(serializedTime), task[SCHEDULER_TASK_EXECUTING_AT]);
 
 	sql_make_query(
-		_fmt("INSERT INTO `%s` VALUES ('%s', '%s', '%s') \
+		_fmt("INSERT INTO `%s` VALUES ('%s', '%s', '%s', '%s') \
 			ON DUPLICATE KEY UPDATE state = '%s', executing_at = '%s'",
 			SCHEDULER_TABLE_NAME, 
-			task[SCHEDULER_TASK_NAME], serializedState, serializedTime,
+			get_localhost(), task[SCHEDULER_TASK_NAME], serializedState, serializedTime,
 			serializedState, serializedTime
 		),
 		"@on_scheduler_worker_sql_commit_changes"
@@ -376,15 +376,17 @@ static _scheduler_task_get_next_execution_time(task[STRUCT_SCHEDULER_TASK]) {
 static scheduler_worker_sql_tuple_init() {
  	sql_make_query(
 		_fmt("CREATE TABLE IF NOT EXISTS `%s` ( \ 
-			name VARCHAR(32) PRIMARY KEY NOT NULL, \
+			address VARCHAR(24) NOT NULL, \
+			name VARCHAR(32) NOT NULL, \
 			state TEXT NOT NULL, \
-			executing_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP \
+			executing_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
+			UNIQUE KEY unique_id (address, name) \
 		)", SCHEDULER_TABLE_NAME),
 		"@on_scheduler_worker_sql_tables_created"
 	);
 
 	sql_make_query(
-		_fmt("SELECT * FROM `%s` WHERE 1", SCHEDULER_TABLE_NAME),
+		_fmt("SELECT * FROM `%s` WHERE address = '%s'", SCHEDULER_TABLE_NAME, get_localhost()),
 		"@on_scheduler_worker_sql_sync_cache"
 	);
 }
@@ -493,4 +495,10 @@ format_timestamp(output[], len, time = -1) {
 
 parse_timestamp(const input[], time = -1) {
 	return parse_time(input, TIMESTAMP_FORMAT, time);
+}
+
+get_localhost() {
+	static address[MAX_IP_WITH_PORT_LENGTH];
+	get_user_ip(0, address, charsmax(address));
+	return address;
 }

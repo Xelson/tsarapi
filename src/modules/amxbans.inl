@@ -15,14 +15,10 @@ static const ERROR_RETRY_INTERVAL = 5 * 60;
 new static const CVAR_NAME[] = "tsarapi_send_amxbans";
 
 public module_amxbans_cfg() {
-	if(isModuleEnabled && !is_supported_plugin_installed()) {
+	if(isModuleEnabled && !is_supported_amxbans_plugin_installed()) {
 		set_cvar_num(CVAR_NAME, 0);
 		log_amx("AmxBans/FreshBans/LiteBans are not installed on the server. AmxBans module is disabled.")
 	}
-}
-
-public module_amxbans_init() {
-	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
 
 	scheduler_task_define(
 		"amxbans_fetch",
@@ -30,12 +26,16 @@ public module_amxbans_init() {
 		"@module_amxbans_execute_task",
 		"@module_amxbans_get_executing_time"
 	)
+}
+
+public module_amxbans_init() {
+	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
 
 	set_task(0.1, "@module_amxbans_make_tuple", generate_task_id());
 }
 
 @module_amxbans_make_tuple() {
-	g_sqlHandle = sql_make_tuple();
+	g_sqlHandle = sql_make_amxbans_tuple();
 }
 
 @module_amxbans_get_executing_time() {
@@ -49,7 +49,7 @@ public module_amxbans_init() {
 	}
 
 	if(!isModuleEnabled) {
-		task_stop_and_schedule_next(taskId);
+		module_amxbans_task_stop_and_schedule_next(taskId);
 		scheduler_task_sql_commit_changes(taskId);
 		return;
 	}
@@ -57,10 +57,10 @@ public module_amxbans_init() {
 	new EzJSON:st = scheduler_task_get_state(taskId)
 	new page = ezjson_object_get_number(st, "current_page");
 
-	task_execute_step(taskId, page, LIMIT);
+	module_amxbans_task_execute_step(taskId, page, LIMIT);
 }
 
-static task_execute_step(taskId, page, limit) {
+module_amxbans_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_amxbans_query(
@@ -68,7 +68,7 @@ static task_execute_step(taskId, page, limit) {
 			FROM `%s` \
 			WHERE server_ip = '%s' \
 			LIMIT %d OFFSET %d \
-		", sql_get_amxbans_table(), get_local_server_address(), limit, page * limit),
+		", sql_get_amxbans_table(), get_amxbans_localhost(), limit, page * limit),
 		"@module_amxbans_sql_get_amxbans_page",
 		data, sizeof(data)
 	);
@@ -152,13 +152,13 @@ static task_execute_step(taskId, page, limit) {
 		return;
 	}
 	
-	if(isShouldContinueTask) task_continue(taskId);
-	else task_stop_and_schedule_next(taskId);
+	if(isShouldContinueTask) module_amxbans_task_continue(taskId);
+	else module_amxbans_task_stop_and_schedule_next(taskId);
 
 	scheduler_task_sql_commit_changes(taskId);
 }
 
-static task_continue(taskId) {
+module_amxbans_task_continue(taskId) {
 	new EzJSON:st = scheduler_task_get_state(taskId);
 	new page = ezjson_object_get_number(st, "current_page");
 
@@ -169,14 +169,14 @@ static task_continue(taskId) {
 	}
 }
 
-static task_stop_and_schedule_next(taskId) {
+module_amxbans_task_stop_and_schedule_next(taskId) {
 	new EzJSON:st = scheduler_task_get_state(taskId);
 
 	ezjson_object_set_number(st, "current_page", 0);
 	scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
 }
 
-static Handle:sql_make_tuple() {
+Handle:sql_make_amxbans_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
 	new configDir[PLATFORM_MAX_PATH]; 
@@ -237,8 +237,8 @@ sql_make_amxbans_query(const query[], const handler[], const data[] = "", len = 
 	SQL_ThreadQuery(g_sqlHandle, handler, query, data, len);
 }
 
-static get_local_server_address() {
-	static address[32];
+get_amxbans_localhost() {
+	static address[MAX_IP_WITH_PORT_LENGTH];
 
 	if(cvar_exists("fb_server_ip")) {
 		get_cvar_string("fb_server_ip", address, charsmax(address));
@@ -256,6 +256,6 @@ static get_local_server_address() {
 	return address;
 }
 
-static bool:is_supported_plugin_installed() {
+bool:is_supported_amxbans_plugin_installed() {
 	return cvar_exists("amxbans_server_address") || cvar_exists("fb_server_ip") || cvar_exists("lb_server_ip");
 }

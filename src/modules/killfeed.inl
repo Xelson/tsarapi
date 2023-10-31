@@ -25,10 +25,10 @@ public module_killfeed_init() {
 	new weaponName[MAX_WEAPON_NAME_LEN];
 	get_msg_arg_string(arg_weapon_name, weaponName, charsmax(weaponName));
 
-	on_new_deathnotice(killer, victim, weaponName, bool:headshot);
+	module_killfeed_on_new_deathnotice(killer, victim, weaponName, bool:headshot);
 }
 
-static on_new_deathnotice(killer, victim, weaponName[MAX_WEAPON_NAME_LEN], bool:isHeadshot) {
+module_killfeed_on_new_deathnotice(killer, victim, weaponName[MAX_WEAPON_NAME_LEN], bool:isHeadshot) {
 	new EzJSON:data = ezjson_init_object();
 	ezjson_object_add_player_props(data, killer, .prefix = "killer");
 	ezjson_object_add_player_props(data, victim, .prefix = "victim");
