@@ -68,7 +68,7 @@ module_csstatsx_task_execute_step(taskId, page, limit) {
 
 	sql_make_csstatsx_query(
 		_fmt("SELECT id, steamid, name, skill, kills, deaths, hs, tks, shots, hits, dmg, \
-				bombdef, bombdefused, bombplants, bombexplosions, connection_time, assists, \
+				bombdefused, bombplants, bombexplosions, connection_time, assists, \
 				roundt, wint, roundct, winct, first_join, last_join \
 			FROM `%s` \
 			LIMIT %d OFFSET %d \
@@ -85,7 +85,7 @@ module_csstatsx_task_execute_step(taskId, page, limit) {
 
 	enum { 
 		field_id, field_steamid, field_name, field_skill, field_kills, field_deaths,
-		field_hs, field_tks, field_shots, field_hits, field_dmg, field_bomb_def, field_bomb_defused,
+		field_hs, field_tks, field_shots, field_hits, field_dmg, field_bomb_defused,
 		field_bomb_plants, field_bomb_explosions, field_connection_time, field_assists,
 		field_round_t, field_round_t_win, field_round_ct, field_round_ct_win, field_first_join, field_last_join
 	};
@@ -118,7 +118,6 @@ module_csstatsx_task_execute_step(taskId, page, limit) {
 		ezjson_object_set_number(data, "shots", SQL_ReadResult(query, field_shots));
 		ezjson_object_set_number(data, "hits", SQL_ReadResult(query, field_hits));
 		ezjson_object_set_number(data, "dmg", SQL_ReadResult(query, field_dmg));
-		ezjson_object_set_number(data, "bomb_def", SQL_ReadResult(query, field_bomb_def));
 		ezjson_object_set_number(data, "bomb_defused", SQL_ReadResult(query, field_bomb_defused));
 		ezjson_object_set_number(data, "bomb_plants", SQL_ReadResult(query, field_bomb_plants));
 		ezjson_object_set_number(data, "bomb_explosions", SQL_ReadResult(query, field_bomb_explosions));
