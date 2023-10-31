@@ -49,7 +49,7 @@ public module_amxbans_init() {
 	}
 
 	if(!isModuleEnabled) {
-		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
+		task_stop_and_schedule_next(taskId);
 		scheduler_task_sql_commit_changes(taskId);
 		return;
 	}
@@ -57,10 +57,10 @@ public module_amxbans_init() {
 	new EzJSON:st = scheduler_task_get_state(taskId)
 	new page = ezjson_object_get_number(st, "current_page");
 
-	fetch_table(taskId, page, LIMIT);
+	task_execute_step(taskId, page, LIMIT);
 }
 
-static fetch_table(taskId, page, limit) {
+static task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_amxbans_query(
@@ -151,24 +151,29 @@ static fetch_table(taskId, page, limit) {
 
 		return;
 	}
-
-	new EzJSON:st = scheduler_task_get_state(taskId);
-
-	if(isShouldContinueTask) {
-		new page = ezjson_object_get_number(st, "current_page");
-
-		if(page < MAX_PAGES) {
-			ezjson_object_set_number(st, "current_page", page + 1);
-			scheduler_task_set_state(taskId, st);
-			scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
-		}
-	}
-	else {
-		ezjson_object_set_number(st, "current_page", 0);
-		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
-	}
+	
+	if(isShouldContinueTask) task_continue(taskId);
+	else task_stop_and_schedule_next(taskId);
 
 	scheduler_task_sql_commit_changes(taskId);
+}
+
+static task_continue(taskId) {
+	new EzJSON:st = scheduler_task_get_state(taskId);
+	new page = ezjson_object_get_number(st, "current_page");
+
+	if(page < MAX_PAGES) {
+		ezjson_object_set_number(st, "current_page", page + 1);
+		scheduler_task_set_state(taskId, st);
+		scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
+	}
+}
+
+static task_stop_and_schedule_next(taskId) {
+	new EzJSON:st = scheduler_task_get_state(taskId);
+
+	ezjson_object_set_number(st, "current_page", 0);
+	scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
 }
 
 static Handle:sql_make_tuple() {

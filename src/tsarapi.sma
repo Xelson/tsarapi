@@ -16,7 +16,7 @@ new const VERSION[] 	= "0.0.1"
 new const AUTHOR[]		= "ekke bea?"
 
 new const CONFIG_FILE_NAME[] 	= "tsarapi.cfg";
-new const API_URL[] 			= "http://localhost:3000";
+new const API_URL[] 			= "http://csplugin.tsarvar.com/api";
 
 new const TIMESTAMP_FORMAT[] 		= "%Y-%m-%d %H:%M:%S";
 new const SCHEDULER_TABLE_NAME[] 	= "tsarapi_scheduled_tasks";
@@ -28,6 +28,7 @@ new g_token[MAX_TOKEN_LEN], g_pluginId;
 
 public plugin_init() {
 	g_pluginId = register_plugin(PLUGIN, VERSION, AUTHOR, "https://tsarvar.com");
+	bind_pcvar_string(register_cvar("tsarapi_token", "", FCVAR_PROTECTED), g_token, charsmax(g_token));
 
 	scheduler_worker_init();
 	queue_events_worker_init();
@@ -37,20 +38,17 @@ public plugin_init() {
 	module_csstatsx_init();
 	module_killfeed_init();
 	module_scoreboard_init();
+	sql_init();
 }
 
 public plugin_cfg() {
-	bind_pcvar_string(register_cvar("tsarapi_token", "", FCVAR_PROTECTED), g_token, charsmax(g_token));
+	config_exec();
 
 	module_chat_cfg();
 	module_amxbans_cfg();
 	module_csstatsx_cfg();
 	module_killfeed_cfg();
 	module_scoreboard_cfg();
-
-	sql_init();
-
-	config_exec();
 
 	sql_connection_make_tuple();
 }
@@ -212,6 +210,32 @@ new Array:g_arrSheduledTasks
 
 static scheduler_worker_init() {
 	g_arrSheduledTasks = ArrayCreate(STRUCT_SCHEDULER_TASK);
+
+	register_srvcmd("tsarapi_start_task", "@on_srvcmd_start_task");
+}
+
+@on_srvcmd_start_task() {
+	new tasksCount = scheduler_tasks_count();
+	if(tasksCount == 0) {
+		server_print("There are no registered tasks");
+		return;
+	}
+
+	new taskName[32]; read_args(taskName, charsmax(taskName));
+	new taskId = scheduler_task_id_get_by_name(taskName);
+
+	if(taskId == -1) {
+		server_print("Can't find '%s' task. Available tasks are:", taskName);
+		for(new taskId = 0; taskId < tasksCount; taskId++) {
+			scheduler_task_get_name(taskId, taskName, charsmax(taskName));
+			server_print(taskName);
+		}
+		return;
+	}
+
+	server_print("Executing task '%s'...", taskName);
+	scheduler_task_timer_stop(taskId);
+	scheduler_task_execute(taskId);
 }
 
 scheduler_task_define(
@@ -253,6 +277,12 @@ scheduler_task_get_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ArrayGetArray(g_arrSheduledTasks, taskId, task);
 }
 
+scheduler_task_get_name(taskId, dest[], len) {
+	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
+
+	ArrayGetString(g_arrSheduledTasks, taskId, dest, len);
+}
+
 static scheduler_task_set_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
 
@@ -292,7 +322,7 @@ scheduler_task_set_executing_at(taskId, executingAt) {
 	scheduler_task_get_data(taskId, task);
 
 	task[SCHEDULER_TASK_EXECUTING_AT] = executingAt;
-	_scheduler_task_continue_executing(task);
+	_scheduler_task_timer_continue(task);
 
 	scheduler_task_set_data(taskId, task);
 }
@@ -395,7 +425,7 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		task[SCHEDULER_TASK_EXECUTING_AT] = parse_timestamp(buffer);
 
 		scheduler_task_cache_merge(task);
-		_scheduler_task_continue_executing(task);
+		_scheduler_task_timer_continue(task);
 
 		ArrayPushCell(arrCachedTaskIds, taskId);
 	}
@@ -403,24 +433,24 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
 		if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
 			scheduler_task_sql_commit_changes(taskId);
-			scheduler_task_continue_executing(taskId);
+			scheduler_task_timer_continue(taskId);
 		}
 	}
 
 	ArrayDestroy(arrCachedTaskIds);
 }
 
-scheduler_task_continue_executing(taskId) {
+scheduler_task_timer_continue(taskId) {
 	new task[STRUCT_SCHEDULER_TASK];
 	scheduler_task_get_data(taskId, task);
 
-	_scheduler_task_continue_executing(task);
+	_scheduler_task_timer_continue(task);
 
 	scheduler_task_set_data(taskId, task);
 }
 
-static _scheduler_task_continue_executing(task[STRUCT_SCHEDULER_TASK]) {
-	remove_task(task[SCHEDULER_TASK_TIMER_ID]);
+static _scheduler_task_timer_continue(task[STRUCT_SCHEDULER_TASK]) {
+	_scheduler_task_timer_stop(task);
 
 	task[SCHEDULER_TASK_TIMER_ID] = set_task(
 		float(task[SCHEDULER_TASK_EXECUTING_AT] - get_systime()), 
@@ -430,7 +460,29 @@ static _scheduler_task_continue_executing(task[STRUCT_SCHEDULER_TASK]) {
 	);
 }
 
+scheduler_task_timer_stop(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	_scheduler_task_timer_stop(task);
+}
+
+static _scheduler_task_timer_stop(task[STRUCT_SCHEDULER_TASK]) {
+	remove_task(task[SCHEDULER_TASK_TIMER_ID]);
+}
+
 @task_scheduler_execute(task[STRUCT_SCHEDULER_TASK]) {
+	_scheduler_task_execute(task);
+}
+
+scheduler_task_execute(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	_scheduler_task_execute(task);
+}
+
+static _scheduler_task_execute(task[STRUCT_SCHEDULER_TASK]) {
 	new ret;
 	ExecuteForward(task[SCHEDULER_TASK_HANDLER], ret, task[SCHEDULER_TASK_ID]);
 }

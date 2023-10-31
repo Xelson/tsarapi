@@ -7,7 +7,7 @@
 static bool:isModuleEnabled 
 static Handle:g_sqlHandle
 
-static const LIMIT = 300;
+static const LIMIT = 200;
 static const MAX_PAGES = 10;
 static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
@@ -52,7 +52,7 @@ public module_csstatsx_init() {
 	}
 	
 	if(!isModuleEnabled) {
-		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
+		task_stop_and_schedule_next(taskId);
 		scheduler_task_sql_commit_changes(taskId);
 		return;
 	}
@@ -60,15 +60,15 @@ public module_csstatsx_init() {
 	new EzJSON:st = scheduler_task_get_state(taskId)
 	new page = ezjson_object_get_number(st, "current_page");
 
-	fetch_table(taskId, page, LIMIT);
+	task_execute_step(taskId, page, LIMIT);
 }
 
-static fetch_table(taskId, page, limit) {
+static task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_csstatsx_query(
 		_fmt("SELECT id, steamid, name, skill, kills, deaths, hs, tks, shots, hits, dmg, \
-				bombdef, bombdefused, bombplants, bomb_explosions, connection_time, assists, \
+				bombdef, bombdefused, bombplants, bombexplosions, connection_time, assists, \
 				roundt, wint, roundct, winct, first_join, last_join \
 			FROM `%s` \
 			LIMIT %d OFFSET %d \
@@ -168,23 +168,28 @@ static fetch_table(taskId, page, limit) {
 		return;
 	}
 
-	new EzJSON:st = scheduler_task_get_state(taskId);
-
-	if(isShouldContinueTask) {
-		new page = ezjson_object_get_number(st, "current_page");
-
-		if(page < MAX_PAGES) {
-			ezjson_object_set_number(st, "current_page", page + 1);
-			scheduler_task_set_state(taskId, st);
-			scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
-		}
-	}
-	else {
-		ezjson_object_set_number(st, "current_page", 0);
-		scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
-	}
+	if(isShouldContinueTask) task_continue(taskId);
+	else task_stop_and_schedule_next(taskId);
 
 	scheduler_task_sql_commit_changes(taskId);
+}
+
+static task_continue(taskId) {
+	new EzJSON:st = scheduler_task_get_state(taskId);
+	new page = ezjson_object_get_number(st, "current_page");
+
+	if(page < MAX_PAGES) {
+		ezjson_object_set_number(st, "current_page", page + 1);
+		scheduler_task_set_state(taskId, st);
+		scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
+	}
+}
+
+static task_stop_and_schedule_next(taskId) {
+	new EzJSON:st = scheduler_task_get_state(taskId);
+
+	ezjson_object_set_number(st, "current_page", 0);
+	scheduler_task_set_executing_at(taskId, scheduler_task_get_next_execution_time(taskId));
 }
 
 sql_make_csstatsx_query(const query[], const handler[], const data[] = "", len = 0) {
@@ -196,6 +201,7 @@ sql_make_csstatsx_query(const query[], const handler[], const data[] = "", len =
 sql_get_csstatsx_table() {
 	static tableName[64];
 	get_cvar_string("csstats_sql_table", tableName, charsmax(tableName));
+
 	return tableName;
 }
 
