@@ -112,7 +112,7 @@ public queue_events_worker_init() {
 	}
 }
 
-queue_event_emit(name[], EzJSON:_MOVE_data, replaceIfHandler[] = "", data[] = "") {
+queue_event_emit(name[], EzJSON:_MOVE_data, replaceIfHandler[] = "", data[] = "", dataLen = 0) {
 	new entry[STRUCT_QUEUE_EVENT], index = -1;
 
 	if(strlen(replaceIfHandler) > 0) {
@@ -125,13 +125,15 @@ queue_event_emit(name[], EzJSON:_MOVE_data, replaceIfHandler[] = "", data[] = ""
 		}
 
 		if(ArraySize(arrEventsOfType) > 0) {
-			new ret, frwd = CreateOneForward(g_pluginId, replaceIfHandler, FP_CELL, FP_ARRAY);
-			ExecuteForward(frwd, ret, arrEventsOfType, data);
+			new ret = -1, frwd = CreateOneForward(g_pluginId, replaceIfHandler, FP_CELL, FP_ARRAY);
+			ExecuteForward(frwd, ret, arrEventsOfType, PrepareArray(data, dataLen));
+			ArrayClear(arrEventsOfType);
 			DestroyForward(frwd);
 
 			if(ret >= -1 && ret < ArraySize(g_arrQueueEvents)) index = ret
 			else abort(AMX_ERR_BOUNDS, "Returned an invalid index %d for events array", ret);
 		}	
+		else ArrayClear(arrEventsOfType);
 	}
 	
 	copy(entry[QUEUE_EVENT_NAME], charsmax(entry[QUEUE_EVENT_NAME]), name);

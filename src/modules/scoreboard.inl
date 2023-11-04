@@ -20,8 +20,8 @@ public module_scoreboard_init() {
 @module_scoreboard_check_updates() {
 	if(!isModuleEnabled) return;
 
-	static plName[MAX_PLAYERS][MAX_NAME_LENGTH], plTeam[MAX_PLAYERS], 
-		plScore[MAX_PLAYERS], plDeaths[MAX_PLAYERS]
+	static plName[MAX_PLAYERS + 1][MAX_NAME_LENGTH + 1], plTeam[MAX_PLAYERS + 1], 
+		plScore[MAX_PLAYERS + 1], plDeaths[MAX_PLAYERS + 1]
 
 	for(new id = 1; id <= MaxClients; id++) {
 		if(!is_user_connected(id)) continue;
@@ -29,14 +29,14 @@ public module_scoreboard_init() {
 		if(!equal(plName[id], get_player_name(id)) 
 			|| plTeam[id] != get_user_team(id) 
 			|| plScore[id] != get_player_score(id)
-			|| plDeaths[id] != get_player_team(id)
+			|| plDeaths[id] != get_player_deaths(id)
 		) {
 			module_scoreboard_on_player_state_changed(id);
 
 			copy(plName[id], charsmax(plName[]), get_player_name(id));
 			plTeam[id] = get_user_team(id);
 			plScore[id] = get_player_score(id);
-			plDeaths[id] = get_player_team(id);
+			plDeaths[id] = get_player_deaths(id);
 		}
 	}
 }
@@ -68,7 +68,7 @@ module_scoreboard_on_player_state_changed(id) {
 	queue_event_emit(
 		"player_state_changed", object, 
 		.replaceIfHandler = "@module_scoreboard_replace_event_if",
-		.data = data
+		.data = data, .dataLen = sizeof(data)
 	);
 }
 
