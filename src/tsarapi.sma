@@ -7,7 +7,7 @@
 #include <modules/killfeed.inl>
 #include <modules/scoreboard.inl>
 #include <modules/amxbans.inl>
-#include <modules/csstatsx.inl>
+#include <modules/csstats.inl>
 
 #include <ezjson_gc>
 
@@ -35,7 +35,7 @@ public plugin_init() {
 
 	module_chat_init();
 	module_amxbans_init();
-	module_csstatsx_init();
+	module_csstats_init();
 	module_killfeed_init();
 	module_scoreboard_init();
 	sql_init();
@@ -46,7 +46,7 @@ public plugin_cfg() {
 
 	module_chat_cfg();
 	module_amxbans_cfg();
-	module_csstatsx_cfg();
+	module_csstats_cfg();
 	module_killfeed_cfg();
 	module_scoreboard_cfg();
 
