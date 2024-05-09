@@ -13,7 +13,7 @@
 #include <ezjson_gc>
 
 new const PLUGIN[]  	= "Tsarapi"
-new const VERSION[] 	= "0.0.1"
+new const VERSION[] 	= "0.3.0"
 new const AUTHOR[]		= "ekke bea?"
 
 new const CONFIG_FILE_NAME[] 	= "tsarapi.cfg";
@@ -166,6 +166,7 @@ EzJSON:request_api_object_init(EzJSON_GC:gc) {
 
 request_api_object_post(EzJSON:object, const handler[], const data[] = "", len = 0) {
 	new EzHttpOptions:ezhttpOpt = ezhttp_create_options();
+	ezhttp_option_set_header(ezhttpOpt, "X-Tsarapi-Verion", VERSION);
 	ezhttp_option_set_header(ezhttpOpt, "Content-Type", "application/json");
 	ezhttp_option_set_timeout(ezhttpOpt, 3000);
 	ezhttp_option_set_body_from_json(ezhttpOpt, object);
