@@ -30,8 +30,8 @@ public module_killfeed_init() {
 
 module_killfeed_on_new_deathnotice(killer, victim, weaponName[MAX_WEAPON_NAME_LEN], bool:isHeadshot) {
 	new EzJSON:data = ezjson_init_object();
-	ezjson_object_add_player_props(data, killer, .prefix = "killer");
-	ezjson_object_add_player_props(data, victim, .prefix = "victim");
+	ezjson_object_add_player_props(data, killer, .prefix = "killer_");
+	ezjson_object_add_player_props(data, victim, .prefix = "victim_");
 	ezjson_object_set_string(data, "weapon_name", weaponName);
 	ezjson_object_set_bool(data, "is_headshot", isHeadshot);
 

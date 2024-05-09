@@ -31,11 +31,11 @@ stock get_player_team(id) {
 	return get_user_team(id);
 }
 
-stock ezjson_object_add_player_props(EzJSON:object, id, prefix[] = "player") {
-	ezjson_object_set_number(object, fmt("%s_slotid", prefix), id);
-	ezjson_object_set_string(object, fmt("%s_steamid", prefix), get_player_steamid(id));
-	ezjson_object_set_string(object, fmt("%s_name", prefix), get_player_name(id));
-	ezjson_object_set_number(object, fmt("%s_team", prefix), get_player_team(id));
+stock ezjson_object_add_player_props(EzJSON:object, id, prefix[] = "") {
+	// ezjson_object_set_number(object, fmt("%sslotid", prefix), id);
+	ezjson_object_set_string(object, fmt("%ssteamid", prefix), get_player_steamid(id));
+	ezjson_object_set_string(object, fmt("%sname", prefix), get_player_name(id));
+	ezjson_object_set_number(object, fmt("%steam", prefix), get_player_team(id));
 }
 
 stock generate_task_id(step = 1) {
