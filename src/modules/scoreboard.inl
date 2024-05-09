@@ -18,29 +18,9 @@ public module_scoreboard_init() {
 	if(!isModuleEnabled) return;
 
 	module_scoreboard_snap_and_queue();
-
-	static plName[MAX_PLAYERS + 1][MAX_NAME_LENGTH + 1], plTeam[MAX_PLAYERS + 1], 
-		plScore[MAX_PLAYERS + 1], plDeaths[MAX_PLAYERS + 1]
-
-	for(new id = 1; id <= MaxClients; id++) {
-		if(!is_user_connected(id)) continue;
-
-		if(!equal(plName[id], get_player_name(id)) 
-			|| plTeam[id] != get_user_team(id) 
-			|| plScore[id] != get_player_score(id)
-			|| plDeaths[id] != get_player_deaths(id)
-		) {
-			module_scoreboard_on_player_state_changed(id);
-
-			copy(plName[id], charsmax(plName[]), get_player_name(id));
-			plTeam[id] = get_user_team(id);
-			plScore[id] = get_player_score(id);
-			plDeaths[id] = get_player_deaths(id);
-		}
-	}
 }
 
-module_scoreboard_snap_and_queue(id) {
+module_scoreboard_snap_and_queue() {
 	new EzJSON:items = ezjson_init_array();
 
 	for(new id = 1; id <= MaxClients; id++) {
@@ -54,5 +34,5 @@ module_scoreboard_snap_and_queue(id) {
 		ezjson_array_append_value(items, object);
 	}
 
-	queue_event_emit("scoreboard", object);
+	queue_event_emit("scoreboard", items);
 }

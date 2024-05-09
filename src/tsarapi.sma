@@ -8,6 +8,7 @@
 #include <modules/scoreboard.inl>
 #include <modules/amxbans.inl>
 #include <modules/csstats.inl>
+#include <modules/changelevel.inl>
 
 #include <ezjson_gc>
 
@@ -38,6 +39,8 @@ public plugin_init() {
 	module_csstats_init();
 	module_killfeed_init();
 	module_scoreboard_init();
+	module_changelevel_init();
+
 	sql_init();
 }
 
@@ -49,6 +52,7 @@ public plugin_cfg() {
 	module_csstats_cfg();
 	module_killfeed_cfg();
 	module_scoreboard_cfg();
+	module_changelevel_cfg();
 
 	sql_connection_make_tuple();
 }
