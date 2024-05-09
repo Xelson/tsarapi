@@ -14,6 +14,8 @@ static const ERROR_RETRY_INTERVAL = 5 * 60;
 
 new static const CVAR_NAME[] = "tsarapi_send_amxbans";
 
+static const BAN_FIELDS_TO_SELECT[] = "bid, player_id, player_nick, admin_id, admin_nick, ban_created, ban_length, ban_reason, ban_kicks, expired";
+
 public module_amxbans_cfg() {
 	if(isModuleEnabled && !is_supported_amxbans_plugin_installed()) {
 		set_cvar_num(CVAR_NAME, 0);
@@ -64,14 +66,33 @@ module_amxbans_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_amxbans_query(
-		_fmt("SELECT bid, player_id, player_nick, admin_id, admin_nick, ban_created, ban_length, ban_reason, ban_kicks, expired \ 
-			FROM `%s` \
-			WHERE server_ip = '%s' \
-			LIMIT %d OFFSET %d \
-		", sql_get_amxbans_table(), get_amxbans_localhost(), limit, page * limit),
+		_fmt("SELECT %s FROM `%s` WHERE server_ip = '%s' LIMIT %d OFFSET %d", 
+		BAN_FIELDS_TO_SELECT, sql_get_amxbans_table(), get_amxbans_localhost(), limit, page * limit),
 		"@module_amxbans_sql_get_amxbans_page",
 		data, sizeof(data)
 	);
+}
+
+public fbans_player_banned_post(const id, const userid, const banid) {
+	module_amxbans_send_ban_event(banid);
+}
+
+module_amxbans_send_ban_event(banid) {
+	sql_make_amxbans_query(
+		_fmt("SELECT %s FROM `%s` WHERE bid = %d", BAN_FIELDS_TO_SELECT, sql_get_amxbans_table(), banid),
+		"@module_amxbans_sql_get_ban_to_send"
+	);
+}
+
+@module_amxbans_sql_get_ban_to_send(failstate, Handle:query, error[], errnum, data[], size) {
+	ASSERT(failstate == TQUERY_SUCCESS, error);
+
+	if(!SQL_MoreResults(query)) return
+
+	new EzJSON:root = ezjson_init_object();
+	ezjson_object_add_ban_fields_from_sql(query, root);
+
+	queue_event_emit("new_ban_entry", root);
 }
 
 @module_amxbans_sql_get_amxbans_page(failstate, Handle:query, error[], errnum, data[], size) {
@@ -79,42 +100,15 @@ module_amxbans_task_execute_step(taskId, page, limit) {
 
 	new taskId = data[0];
 
-	enum { 
-		field_bid, field_player_steamid, field_player_name, 
-		field_admin_steamid, field_admin_name,
-		field_ban_created, field_ban_length, field_ban_reason,
-		field_ban_kicks, field_is_expired
-	};
-
-	new playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
-		adminSteamId[MAX_AUTHID_LENGTH], adminName[MAX_NAME_LENGTH], 
-		banReason[64], banCreatedAt[32];
-
 	new EzJSON_GC:gc = ezjson_gc_init();
 	new EzJSON:root = request_api_object_init(gc);
 	new EzJSON:items = ezjson_object_get_value(root, "items");
 
 	for(; SQL_MoreResults(query); SQL_NextRow(query)) {
-		SQL_ReadResult(query, field_ban_reason, banReason, charsmax(banReason));
-		SQL_ReadResult(query, field_player_steamid, playerSteamId, charsmax(playerSteamId));
-		SQL_ReadResult(query, field_player_name, playerName, charsmax(playerName));
-		SQL_ReadResult(query, field_admin_steamid, adminSteamId, charsmax(adminSteamId));
-		SQL_ReadResult(query, field_admin_name, adminName, charsmax(adminName));
-		format_timestamp(banCreatedAt, charsmax(banCreatedAt), SQL_ReadResult(query, field_ban_created));
-
 		new EzJSON:item = ezjson_init_object(); gc += item;
 		new EzJSON:data = ezjson_init_object(); gc += data;
 		
-		ezjson_object_set_number(data, "id", SQL_ReadResult(query, field_bid));
-		ezjson_object_set_string(data, "player_steamid", playerSteamId);
-		ezjson_object_set_string(data, "player_name", playerName);
-		ezjson_object_set_string(data, "admin_steamid", adminSteamId);
-		ezjson_object_set_string(data, "admin_name", adminName);
-		ezjson_object_set_string(data, "ban_reason", banReason);
-		ezjson_object_set_number(data, "ban_length", SQL_ReadResult(query, field_ban_length));
-		ezjson_object_set_number(data, "ban_kicks", SQL_ReadResult(query, field_ban_kicks));
-		ezjson_object_set_string(data, "ban_created_at", banCreatedAt);
-		ezjson_object_set_bool(data, "is_expired", bool:SQL_ReadResult(query, field_is_expired));
+		ezjson_object_add_ban_fields_from_sql(query, data);
 
 		ezjson_object_set_string(item, "type", "ban_entry");
 		ezjson_object_set_value(item, "data", data);
@@ -258,4 +252,35 @@ get_amxbans_localhost() {
 
 bool:is_supported_amxbans_plugin_installed() {
 	return cvar_exists("amxbans_server_address") || cvar_exists("fb_server_ip") || cvar_exists("lb_server_ip");
+}
+
+ezjson_object_add_ban_fields_from_sql(Handle:query, EzJSON:data) {
+	enum { 
+		field_bid, field_player_steamid, field_player_name, 
+		field_admin_steamid, field_admin_name,
+		field_ban_created, field_ban_length, field_ban_reason,
+		field_ban_kicks, field_is_expired
+	};
+
+	new playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
+		adminSteamId[MAX_AUTHID_LENGTH], adminName[MAX_NAME_LENGTH], 
+		banReason[64], banCreatedAt[32];
+
+	SQL_ReadResult(query, field_ban_reason, banReason, charsmax(banReason));
+	SQL_ReadResult(query, field_player_steamid, playerSteamId, charsmax(playerSteamId));
+	SQL_ReadResult(query, field_player_name, playerName, charsmax(playerName));
+	SQL_ReadResult(query, field_admin_steamid, adminSteamId, charsmax(adminSteamId));
+	SQL_ReadResult(query, field_admin_name, adminName, charsmax(adminName));
+	format_timestamp(banCreatedAt, charsmax(banCreatedAt), SQL_ReadResult(query, field_ban_created));
+
+	ezjson_object_set_number(data, "id", SQL_ReadResult(query, field_bid));
+	ezjson_object_set_string(data, "player_steamid", playerSteamId);
+	ezjson_object_set_string(data, "player_name", playerName);
+	ezjson_object_set_string(data, "admin_steamid", adminSteamId);
+	ezjson_object_set_string(data, "admin_name", adminName);
+	ezjson_object_set_string(data, "ban_reason", banReason);
+	ezjson_object_set_number(data, "ban_length", SQL_ReadResult(query, field_ban_length));
+	ezjson_object_set_number(data, "ban_kicks", SQL_ReadResult(query, field_ban_kicks));
+	ezjson_object_set_string(data, "ban_created_at", banCreatedAt);
+	ezjson_object_set_bool(data, "is_expired", bool:SQL_ReadResult(query, field_is_expired));
 }

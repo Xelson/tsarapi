@@ -223,7 +223,6 @@ module_csstats_task_execute_step(taskId, page, limit) {
 		ezjson_object_set_string(item, "type", "stats_entry");
 		ezjson_object_set_value(item, "data", data);
 
-		ezjson_object_set_number(data, "kills", SQL_ReadResult(query, field_kills));
 		ezjson_array_append_value(items, item);
 	}
 
