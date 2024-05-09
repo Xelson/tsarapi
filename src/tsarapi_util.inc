@@ -59,5 +59,6 @@ get_next_systime_in(const time[]) {
 	static const SECONDS_IN_DAY = 86400;
 	new targetTime = parse_time(time, "%H:%M:%S");
 	
-	return get_systime() > targetTime ? targetTime + SECONDS_IN_DAY : targetTime;
+	// return get_systime() > targetTime ? targetTime + SECONDS_IN_DAY : targetTime;
+	return targetTime + SECONDS_IN_DAY
 }

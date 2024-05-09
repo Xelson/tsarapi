@@ -41,7 +41,7 @@ public module_amxbans_init() {
 }
 
 @module_amxbans_get_executing_time() {
-	return get_next_systime_in(_fmt("%d:00:00", random_num(0, 11)));
+	return get_next_systime_in(_fmt("%d:%d:00", random_num(1, 11), random_num(0, 60)));
 }
 
 @module_amxbans_execute_task(taskId) {

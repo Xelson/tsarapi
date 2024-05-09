@@ -48,7 +48,7 @@ public module_csstats_init() {
 }
 
 @module_csstats_get_executing_time() {
-	return get_next_systime_in(_fmt("%d:00:00", random_num(12, 23)));
+	return get_next_systime_in(_fmt("%d:%d:00", random_num(12, 23), random_num(0, 60)));
 }
 
 @module_csstats_execute_task(taskId) {
