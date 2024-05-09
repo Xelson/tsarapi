@@ -165,8 +165,9 @@ EzJSON:request_api_object_init(EzJSON_GC:gc) {
 }
 
 request_api_object_post(EzJSON:object, const handler[], const data[] = "", len = 0) {
+	ezjson_object_set_string(object, "ver", VERSION);
+
 	new EzHttpOptions:ezhttpOpt = ezhttp_create_options();
-	ezhttp_option_set_header(ezhttpOpt, "X-Tsarapi-Verion", VERSION);
 	ezhttp_option_set_header(ezhttpOpt, "Content-Type", "application/json");
 	ezhttp_option_set_timeout(ezhttpOpt, 3000);
 	ezhttp_option_set_body_from_json(ezhttpOpt, object);
