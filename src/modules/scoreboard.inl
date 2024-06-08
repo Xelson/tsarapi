@@ -17,7 +17,33 @@ public module_scoreboard_init() {
 @module_scoreboard_send_updates() {
 	if(!isModuleEnabled) return;
 
-	module_scoreboard_snap_and_queue();
+	static plName[MAX_PLAYERS + 1][MAX_NAME_LENGTH + 1], plTeam[MAX_PLAYERS + 1], 
+		plScore[MAX_PLAYERS + 1], plDeaths[MAX_PLAYERS + 1], playersCount
+
+	new bool:shouldQueueSnap, count;
+
+	for(new id = 1; id <= MaxClients; id++) {
+		if(!is_user_connected(id)) continue;
+
+		if(!equal(plName[id], get_player_name(id)) 
+			|| plTeam[id] != get_user_team(id) 
+			|| plScore[id] != get_player_score(id)
+			|| plDeaths[id] != get_player_deaths(id)
+		) {
+			shouldQueueSnap = true;
+
+			copy(plName[id], charsmax(plName[]), get_player_name(id));
+			plTeam[id] = get_user_team(id);
+			plScore[id] = get_player_score(id);
+			plDeaths[id] = get_player_deaths(id);
+		}
+		count++;
+	}
+
+	if(shouldQueueSnap || count != playersCount)
+		module_scoreboard_snap_and_queue();
+
+	playersCount = count;
 }
 
 module_scoreboard_snap_and_queue() {

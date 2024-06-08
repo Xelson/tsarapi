@@ -13,7 +13,7 @@
 #include <ezjson_gc>
 
 new const PLUGIN[]  	= "Tsarapi"
-new const VERSION[] 	= "0.3.0"
+new const VERSION[] 	= "0.3.1"
 new const AUTHOR[]		= "ekke bea?"
 
 new const CONFIG_FILE_NAME[] 	= "tsarapi.cfg";
@@ -411,7 +411,8 @@ static scheduler_worker_sql_tuple_init() {
 
 static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 	new buffer[1024];
-	enum { field_name, field_state, field_executing_at };
+	enum { field_address, field_name, field_state, field_executing_at };
+	#pragma unused field_address
 
 	new Array:arrCachedTaskIds = ArrayCreate();
 
@@ -421,6 +422,7 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		new taskId = scheduler_task_id_get_by_name(buffer);
 		if(taskId == -1) {
 			// Может быть добавить код для чистки удаленных из системы тасков	
+			server_print("not found in defined tasks", buffer);
 			continue;
 		}
 
@@ -440,12 +442,12 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		ArrayPushCell(arrCachedTaskIds, taskId);
 	}
 
-	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
-		if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
-			scheduler_task_sql_commit_changes(taskId);
-			scheduler_task_timer_continue(taskId);
-		}
-	}
+	// for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
+	// 	if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
+	// 		scheduler_task_sql_commit_changes(taskId);
+	// 		scheduler_task_timer_continue(taskId);
+	// 	}
+	// }
 
 	ArrayDestroy(arrCachedTaskIds);
 }

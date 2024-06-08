@@ -271,6 +271,7 @@ module_csstats_task_continue(taskId) {
 		scheduler_task_set_state(taskId, st);
 		scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
 	}
+	else module_csstats_task_stop_and_schedule_next(taskId);
 }
 
 module_csstats_task_stop_and_schedule_next(taskId) {
@@ -301,13 +302,13 @@ Handle:sql_make_csstats_tuple() {
 	static host[64], user[64], pass[64], db[64];
 
 	switch(get_csstats_plugin_type()) {
-		case CSSTATS_TYPE_CSSTATS: {
+		case CSSTATS_TYPE_CSSTATSX: {
 			get_cvar_string("csstats_sql_host", host, charsmax(host));
 			get_cvar_string("csstats_sql_user", user, charsmax(user));
 			get_cvar_string("csstats_sql_pass", pass, charsmax(pass));
 			get_cvar_string("csstats_sql_db", db, charsmax(db));
 		}
-		case CSSTATS_TYPE_CSSTATSX: {
+		case CSSTATS_TYPE_CSSTATS: {
 			get_cvar_string("csstats_host", host, charsmax(host));
 			get_cvar_string("csstats_user", user, charsmax(user));
 			get_cvar_string("csstats_pass", pass, charsmax(pass));

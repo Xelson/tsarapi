@@ -161,6 +161,7 @@ module_amxbans_task_continue(taskId) {
 		scheduler_task_set_state(taskId, st);
 		scheduler_task_set_executing_at(taskId, get_systime() + PARTS_SENDING_INTERVAL);
 	}
+	else module_amxbans_task_stop_and_schedule_next(taskId);
 }
 
 module_amxbans_task_stop_and_schedule_next(taskId) {
