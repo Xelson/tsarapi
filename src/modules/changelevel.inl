@@ -8,8 +8,10 @@ static bool:isModuleEnabled
 public module_changelevel_cfg() {
 	if(!isModuleEnabled) return;
 	
-	new EzJSON:mapName = ezjson_init_string(MapName);
-	queue_event_emit("changelevel", mapName);
+	new EzJSON:root = ezjson_init_object();
+	ezjson_object_set_string(root, "mapname", MapName);
+	
+	queue_event_emit("changelevel", root);
 }
 
 public module_changelevel_init() {

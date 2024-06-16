@@ -3,7 +3,8 @@
 #include <tsarapi_util>
 #include <fakemeta>
 
-static bool:isModuleEnabled 
+static bool:isModuleEnabled
+static g_teamScore[2];
 
 public module_scoreboard_cfg() {
 }
@@ -11,7 +12,20 @@ public module_scoreboard_cfg() {
 public module_scoreboard_init() {
 	bind_pcvar_num(register_cvar("tsarapi_send_scoreboard", "", FCVAR_PROTECTED), isModuleEnabled);
 
+	register_event("TeamScore", "event_teamscore", "a");
+
 	set_task(10.0, "@module_scoreboard_send_updates", generate_task_id(), .flags = "b");
+}
+
+public event_teamscore() {
+	new team[2]; read_data(1, team, charsmax(team));
+	new teamIndex = (team[0] == 'C') ? 1 : 0;
+	new score = read_data(2);
+
+	if(score != g_teamScore[teamIndex]) {
+		g_teamScore[teamIndex] = score;
+		module_scoreboard_snap_and_queue();
+	}
 }
 
 @module_scoreboard_send_updates() {
@@ -47,6 +61,7 @@ public module_scoreboard_init() {
 }
 
 module_scoreboard_snap_and_queue() {
+	new EzJSON:root = ezjson_init_object();
 	new EzJSON:items = ezjson_init_array();
 
 	for(new id = 1; id <= MaxClients; id++) {
@@ -60,5 +75,16 @@ module_scoreboard_snap_and_queue() {
 		ezjson_array_append_value(items, object);
 	}
 
-	queue_event_emit("scoreboard", items);
+	ezjson_object_set_value(root, "players", items);
+	ezjson_object_set_number(root, "score_t", g_teamScore[0]);
+	ezjson_object_set_number(root, "score_ct", g_teamScore[1]);
+
+	queue_event_emit(
+		"scoreboard", root,
+		.replaceIfHandler = "@module_scoreboard_replace_event_if"
+	);
+}
+
+@module_scoreboard_replace_event_if(Array:events) {
+	return 0; // возвращаем первую позицию т.к нам нужно отправлять только свежые данные из очереди
 }
