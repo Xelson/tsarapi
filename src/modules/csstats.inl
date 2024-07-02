@@ -74,11 +74,22 @@ public module_csstats_init() {
 module_csstats_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
-	sql_make_csstats_query(
-		_fmt("SELECT * FROM `%s` LIMIT %d OFFSET %d", sql_get_csstats_table(), limit, page * limit),
-		"@module_csstats_sql_get_page",
-		data, sizeof(data)
-	);
+	switch(get_csstats_plugin_type()) {
+		case CSSTATS_TYPE_CSSTATS: {
+			sql_make_csstats_query(
+				_fmt("SELECT * FROM `%s` ORDER BY lasttime DESC LIMIT %d OFFSET %d", sql_get_csstats_table(), limit, page * limit),
+				"@module_csstats_sql_get_page",
+				data, sizeof(data)
+			);
+		}
+		case CSSTATS_TYPE_CSSTATSX: {
+			sql_make_csstats_query(
+				_fmt("SELECT * FROM `%s` ORDER BY last_join DESC LIMIT %d OFFSET %d", sql_get_csstats_table(), limit, page * limit),
+				"@module_csstats_sql_get_page",
+				data, sizeof(data)
+			);
+		}
+	}
 }
 
 @module_csstats_sql_get_page(failstate, Handle:query, error[], errnum, data[], size) {
