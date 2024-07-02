@@ -16,11 +16,15 @@ public module_chat_init() {
 }
 
 @module_chat_on_clcmd_say(id) {
-	if(!isModuleEnabled) return;
+	if(!isModuleEnabled)
+		return;
 
 	new message[MAX_CHAT_MSG_LEN];
 	read_args(message, charsmax(message));
 	remove_quotes(message);
+
+	if(!strlen(message))
+		return;
 
 	module_chat_on_player_send_message(id, message);
 }

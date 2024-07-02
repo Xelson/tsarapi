@@ -9,7 +9,8 @@ public module_changelevel_cfg() {
 	if(!isModuleEnabled) return;
 	
 	new EzJSON:root = ezjson_init_object();
-	ezjson_object_set_string(root, "mapname", MapName);
+	new mapName[32]; get_mapname(mapName, charsmax(mapName));
+	ezjson_object_set_string(root, "mapname", mapName);
 	
 	queue_event_emit("changelevel", root);
 }

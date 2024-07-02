@@ -41,6 +41,8 @@ public module_csstats_init() {
 	
 	TASKID_MAKE_TUPLE = generate_task_id()
 	set_task(0.1, "@module_csstats_make_tuple", TASKID_MAKE_TUPLE);
+
+	mcsx_fields_map_init();
 }
 
 @module_csstats_make_tuple() {
@@ -72,153 +74,27 @@ public module_csstats_init() {
 module_csstats_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
-	switch(get_csstats_plugin_type()) {
-		case CSSTATS_TYPE_CSSTATS: {
-			sql_make_csstats_query(
-				_fmt("SELECT id, authid, nick, skill, frags, deaths, headshots, teamkills, \
-						shots, hits, damage, defused, planted, explode, gametime, \
-						rounds, wint, winct, lasttime \
-					FROM `%s` \
-					LIMIT %d OFFSET %d \
-				", sql_get_csstats_table(), limit, page * limit),
-				"@module_csstats_sql_get_csstats_page",
-				data, sizeof(data)
-			);
-		}
-		case CSSTATS_TYPE_CSSTATSX: {
-			sql_make_csstats_query(
-				_fmt("SELECT id, steamid, name, skill, kills, deaths, hs, tks, shots, hits, dmg, \
-						bombdefused, bombplants, bombexplosions, connection_time, assists, \
-						roundt, wint, roundct, winct, first_join, last_join \
-					FROM `%s` \
-					LIMIT %d OFFSET %d \
-				", sql_get_csstats_table(), limit, page * limit),
-				"@module_csstats_sql_get_csstatsx_page",
-				data, sizeof(data)
-			);
-		}
-	}
+	sql_make_csstats_query(
+		_fmt("SELECT * FROM `%s` LIMIT %d OFFSET %d", sql_get_csstats_table(), limit, page * limit),
+		"@module_csstats_sql_get_page",
+		data, sizeof(data)
+	);
 }
 
-@module_csstats_sql_get_csstats_page(failstate, Handle:query, error[], errnum, data[], size) {
+@module_csstats_sql_get_page(failstate, Handle:query, error[], errnum, data[], size) {
 	ASSERT(failstate == TQUERY_SUCCESS, error);
 
 	new taskId = data[0];
-
-	enum { 
-		field_id, field_steamid, field_name, field_skill, field_kills, field_deaths,
-		field_hs, field_tks, field_shots, field_hits, field_dmg, field_bomb_defused,
-		field_bomb_plants, field_bomb_explosions, field_connection_time,
-		field_rounds, field_round_t_win, field_round_ct_win, field_last_join
-	};
-
-	new playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
-		lastJoinTime[32], Float:skill;
 
 	new EzJSON_GC:gc = ezjson_gc_init();
 	new EzJSON:root = request_api_object_init(gc);
 	new EzJSON:items = ezjson_object_get_value(root, "items");
 
 	for(; SQL_MoreResults(query); SQL_NextRow(query)) {
-		SQL_ReadResult(query, field_steamid, playerSteamId, charsmax(playerSteamId));
-		SQL_ReadResult(query, field_name, playerName, charsmax(playerName));
-		SQL_ReadResult(query, field_skill, skill);
-		SQL_ReadResult(query, field_last_join, lastJoinTime, charsmax(lastJoinTime));
-
 		new EzJSON:item = ezjson_init_object(); gc += item;
 		new EzJSON:data = ezjson_init_object(); gc += data;
 		
-		ezjson_object_set_number(data, "id", SQL_ReadResult(query, field_id));
-		ezjson_object_set_string(data, "player_steamid", playerSteamId);
-		ezjson_object_set_string(data, "player_name", playerName);
-		ezjson_object_set_real(data, "skill", skill);
-		ezjson_object_set_number(data, "kills", SQL_ReadResult(query, field_kills));
-		ezjson_object_set_number(data, "deaths", SQL_ReadResult(query, field_deaths));
-		ezjson_object_set_number(data, "headshots", SQL_ReadResult(query, field_hs));
-		ezjson_object_set_number(data, "teamkills", SQL_ReadResult(query, field_tks));
-		ezjson_object_set_number(data, "shots", SQL_ReadResult(query, field_shots));
-		ezjson_object_set_number(data, "hits", SQL_ReadResult(query, field_hits));
-		ezjson_object_set_number(data, "dmg", SQL_ReadResult(query, field_dmg));
-		ezjson_object_set_number(data, "bomb_defused", SQL_ReadResult(query, field_bomb_defused));
-		ezjson_object_set_number(data, "bomb_plants", SQL_ReadResult(query, field_bomb_plants));
-		ezjson_object_set_number(data, "bomb_explosions", SQL_ReadResult(query, field_bomb_explosions));
-		ezjson_object_set_number(data, "connection_time", SQL_ReadResult(query, field_connection_time));
-		ezjson_object_set_number(data, "rounds", SQL_ReadResult(query, field_rounds));
-		ezjson_object_set_number(data, "round_t_win", SQL_ReadResult(query, field_round_t_win));
-		ezjson_object_set_number(data, "round_ct_win", SQL_ReadResult(query, field_round_ct_win));
-		ezjson_object_set_string(data, "last_join", lastJoinTime);
-
-		ezjson_object_set_string(item, "type", "stats_entry");
-		ezjson_object_set_value(item, "data", data);
-
-		ezjson_object_set_number(data, "kills", SQL_ReadResult(query, field_kills));
-		ezjson_array_append_value(items, item);
-	}
-
-	new EzJSON:st = scheduler_task_get_state(taskId)
-	new page = ezjson_object_get_number(st, "current_page");
-
-	ezjson_object_set_number(root, "offset", page * LIMIT);
-
-	new userData[2]; 
-	userData[0] = taskId;
-	userData[1] = SQL_NumResults(query) >= LIMIT;
-	request_api_object_post(root, "@module_csstats_on_post_request_complete", userData, sizeof(userData));
-
-	ezjson_gc_destroy(gc);
-}
-
-@module_csstats_sql_get_csstatsx_page(failstate, Handle:query, error[], errnum, data[], size) {
-	ASSERT(failstate == TQUERY_SUCCESS, error);
-
-	new taskId = data[0];
-
-	enum { 
-		field_id, field_steamid, field_name, field_skill, field_kills, field_deaths,
-		field_hs, field_tks, field_shots, field_hits, field_dmg, field_bomb_defused,
-		field_bomb_plants, field_bomb_explosions, field_connection_time, field_assists,
-		field_round_t, field_round_t_win, field_round_ct, field_round_ct_win, field_first_join, field_last_join
-	};
-
-	new playerSteamId[MAX_AUTHID_LENGTH], playerName[MAX_NAME_LENGTH], 
-		firstJoinTime[32], lastJoinTime[32], Float:skill;
-
-	new EzJSON_GC:gc = ezjson_gc_init();
-	new EzJSON:root = request_api_object_init(gc);
-	new EzJSON:items = ezjson_object_get_value(root, "items");
-
-	for(; SQL_MoreResults(query); SQL_NextRow(query)) {
-		SQL_ReadResult(query, field_steamid, playerSteamId, charsmax(playerSteamId));
-		SQL_ReadResult(query, field_name, playerName, charsmax(playerName));
-		SQL_ReadResult(query, field_skill, skill);
-		SQL_ReadResult(query, field_first_join, firstJoinTime, charsmax(firstJoinTime));
-		SQL_ReadResult(query, field_last_join, lastJoinTime, charsmax(lastJoinTime));
-
-		new EzJSON:item = ezjson_init_object(); gc += item;
-		new EzJSON:data = ezjson_init_object(); gc += data;
-		
-		ezjson_object_set_number(data, "id", SQL_ReadResult(query, field_id));
-		ezjson_object_set_string(data, "player_steamid", playerSteamId);
-		ezjson_object_set_string(data, "player_name", playerName);
-		ezjson_object_set_real(data, "skill", skill);
-		ezjson_object_set_number(data, "kills", SQL_ReadResult(query, field_kills));
-		ezjson_object_set_number(data, "deaths", SQL_ReadResult(query, field_deaths));
-		ezjson_object_set_number(data, "headshots", SQL_ReadResult(query, field_hs));
-		ezjson_object_set_number(data, "teamkills", SQL_ReadResult(query, field_tks));
-		ezjson_object_set_number(data, "shots", SQL_ReadResult(query, field_shots));
-		ezjson_object_set_number(data, "hits", SQL_ReadResult(query, field_hits));
-		ezjson_object_set_number(data, "dmg", SQL_ReadResult(query, field_dmg));
-		ezjson_object_set_number(data, "bomb_defused", SQL_ReadResult(query, field_bomb_defused));
-		ezjson_object_set_number(data, "bomb_plants", SQL_ReadResult(query, field_bomb_plants));
-		ezjson_object_set_number(data, "bomb_explosions", SQL_ReadResult(query, field_bomb_explosions));
-		ezjson_object_set_number(data, "connection_time", SQL_ReadResult(query, field_connection_time));
-		ezjson_object_set_number(data, "assists", SQL_ReadResult(query, field_assists));
-		ezjson_object_set_number(data, "round_t", SQL_ReadResult(query, field_round_t));
-		ezjson_object_set_number(data, "round_t_win", SQL_ReadResult(query, field_round_t_win));
-		ezjson_object_set_number(data, "round_ct", SQL_ReadResult(query, field_round_ct));
-		ezjson_object_set_number(data, "round_ct_win", SQL_ReadResult(query, field_round_ct_win));
-		ezjson_object_set_string(data, "first_join", firstJoinTime);
-		ezjson_object_set_string(data, "last_join", lastJoinTime);
+		ezjson_object_map_fields_from_sql(data, query);
 
 		ezjson_object_set_string(item, "type", "stats_entry");
 		ezjson_object_set_value(item, "data", data);
@@ -237,6 +113,100 @@ module_csstats_task_execute_step(taskId, page, limit) {
 	request_api_object_post(root, "@module_csstats_on_post_request_complete", userData, sizeof(userData));
 
 	ezjson_gc_destroy(gc);
+}
+
+enum {
+	mcsx_fields_map_number,
+	mcsx_fields_map_string,
+	mcsx_fields_map_real
+}
+
+enum _:MODULE_CSSTATS_FIELDS_MAP {
+	MCSX_FIELDS_MAP_FIELD_NAME[32],
+	MCSX_FIELDS_MAP_TYPE
+}
+
+static Trie:g_fieldsMap
+
+mcsx_fields_map_set(const columnName[], const objFieldName[], type) {
+	if(g_fieldsMap == Invalid_Trie) {
+		g_fieldsMap = TrieCreate();
+	}
+
+	new record[MODULE_CSSTATS_FIELDS_MAP];
+	copy(record[MCSX_FIELDS_MAP_FIELD_NAME], charsmax(record[MCSX_FIELDS_MAP_FIELD_NAME]), objFieldName);
+	record[MCSX_FIELDS_MAP_TYPE] = type;
+
+	TrieSetArray(g_fieldsMap, columnName, record, sizeof(record));
+}
+
+bool:mcsx_fields_map_get(const columnName[], output[MODULE_CSSTATS_FIELDS_MAP]) {
+	return TrieGetArray(g_fieldsMap, columnName, output, sizeof(output));
+}
+
+mcsx_fields_map_init() {
+	mcsx_fields_map_set("id", "id", mcsx_fields_map_number);
+	mcsx_fields_map_set("authid", "player_steamid", mcsx_fields_map_string);
+	mcsx_fields_map_set("nick", "player_name", mcsx_fields_map_string);
+	mcsx_fields_map_set("skill", "skill", mcsx_fields_map_real);
+	mcsx_fields_map_set("frags", "kills", mcsx_fields_map_number);
+	mcsx_fields_map_set("deaths", "deaths", mcsx_fields_map_number);
+	mcsx_fields_map_set("headshots", "headshots", mcsx_fields_map_number);
+	mcsx_fields_map_set("teamkills", "teamkills", mcsx_fields_map_number);
+	mcsx_fields_map_set("shots", "shots", mcsx_fields_map_number);
+	mcsx_fields_map_set("hits", "hits", mcsx_fields_map_number);
+	mcsx_fields_map_set("damage", "dmg", mcsx_fields_map_number);
+	mcsx_fields_map_set("defused", "bomb_defused", mcsx_fields_map_number);
+	mcsx_fields_map_set("planted", "bomb_plants", mcsx_fields_map_number);
+	mcsx_fields_map_set("explode", "bomb_explosions", mcsx_fields_map_number);
+	mcsx_fields_map_set("gametime", "connection_time", mcsx_fields_map_number);
+	mcsx_fields_map_set("rounds", "rounds", mcsx_fields_map_number);
+	mcsx_fields_map_set("wint", "round_t_win", mcsx_fields_map_number);
+	mcsx_fields_map_set("winct", "round_ct_win", mcsx_fields_map_number);
+	mcsx_fields_map_set("lasttime", "last_join", mcsx_fields_map_string);
+
+	// CSSTATS_TYPE_CSSTATSX алиасы
+	mcsx_fields_map_set("steamid", "player_steamid", mcsx_fields_map_string);
+	mcsx_fields_map_set("name", "player_name", mcsx_fields_map_string);
+	mcsx_fields_map_set("kills", "kills", mcsx_fields_map_number);
+	mcsx_fields_map_set("hs", "headshots", mcsx_fields_map_number);
+	mcsx_fields_map_set("tks", "teamkills", mcsx_fields_map_number);
+	mcsx_fields_map_set("dmg", "dmg", mcsx_fields_map_number);
+	mcsx_fields_map_set("bombdefused", "bomb_defused", mcsx_fields_map_number);
+	mcsx_fields_map_set("bombplants", "bomb_plants", mcsx_fields_map_number);
+	mcsx_fields_map_set("bombexplosions", "bomb_explosions", mcsx_fields_map_number);
+	mcsx_fields_map_set("connection_time", "connection_time", mcsx_fields_map_number);
+	mcsx_fields_map_set("assists", "assists", mcsx_fields_map_number);
+	mcsx_fields_map_set("roundt", "round_t", mcsx_fields_map_number);
+	mcsx_fields_map_set("roundct", "round_ct", mcsx_fields_map_number);
+	mcsx_fields_map_set("first_join", "first_join", mcsx_fields_map_string);
+	mcsx_fields_map_set("last_join", "last_join", mcsx_fields_map_string);
+}
+
+ezjson_object_map_fields_from_sql(EzJSON:object, Handle:query) {
+	for(new i, columnName[32], record[MODULE_CSSTATS_FIELDS_MAP]; i < SQL_NumColumns(query); i++) {
+		SQL_FieldNumToName(query, i, columnName, charsmax(columnName));
+
+		if(mcsx_fields_map_get(columnName, record)) {
+			switch(record[MCSX_FIELDS_MAP_TYPE]) {
+				case mcsx_fields_map_number: {
+					ezjson_object_set_number(object, record[MCSX_FIELDS_MAP_FIELD_NAME], SQL_ReadResult(query, i));
+				}
+				case mcsx_fields_map_real: {
+					static Float:value; 
+					SQL_ReadResult(query, i, value);
+
+					ezjson_object_set_real(object, record[MCSX_FIELDS_MAP_FIELD_NAME], value)
+				}
+				case mcsx_fields_map_string: {
+					static buffer[256];
+					SQL_ReadResult(query, i, buffer, charsmax(buffer));
+
+					ezjson_object_set_string(object, record[MCSX_FIELDS_MAP_FIELD_NAME], buffer)
+				}
+			}
+		}
+	}
 }
 
 @module_csstats_on_post_request_complete(EzHttpRequest:request_id) {
