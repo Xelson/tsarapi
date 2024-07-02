@@ -66,7 +66,7 @@ module_amxbans_task_execute_step(taskId, page, limit) {
 	new data[1]; data[0] = taskId;
 
 	sql_make_amxbans_query(
-		_fmt("SELECT %s FROM `%s` WHERE server_ip = '%s' ORDER BY ban_created_at DESC LIMIT %d OFFSET %d", 
+		_fmt("SELECT %s FROM `%s` WHERE server_ip = '%s' ORDER BY ban_created DESC LIMIT %d OFFSET %d", 
 		BAN_FIELDS_TO_SELECT, sql_get_amxbans_table(), get_amxbans_localhost(), limit, page * limit),
 		"@module_amxbans_sql_get_amxbans_page",
 		data, sizeof(data)
