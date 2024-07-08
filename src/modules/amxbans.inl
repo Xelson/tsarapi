@@ -12,15 +12,21 @@ static const MAX_PAGES = 10;
 static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
 
-new static const CVAR_NAME[] = "tsarapi_send_amxbans";
+static cvarId;
 
 static const BAN_FIELDS_TO_SELECT[] = "bid, player_id, player_nick, admin_id, admin_nick, ban_created, ban_length, ban_reason, ban_kicks, expired";
 
 public module_amxbans_cfg() {
 	if(isModuleEnabled && !is_supported_amxbans_plugin_installed()) {
-		set_cvar_num(CVAR_NAME, 0);
+		set_pcvar_num(cvarId, 0);
 		log_amx("AmxBans/FreshBans/LiteBans are not installed on the server. AmxBans module is disabled.")
 	}
+
+	config_observer_watch_cvar(
+		cvarId, 
+		"send_amxbans", 
+		config_option_number
+	);
 
 	scheduler_task_define(
 		"amxbans_fetch",
@@ -31,7 +37,8 @@ public module_amxbans_cfg() {
 }
 
 public module_amxbans_init() {
-	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
+	cvarId = register_cvar("tsarapi_send_amxbans", "", FCVAR_PROTECTED)
+	bind_pcvar_num(cvarId, isModuleEnabled);
 
 	set_task(0.1, "@module_amxbans_make_tuple", generate_task_id());
 }

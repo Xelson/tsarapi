@@ -4,14 +4,25 @@
 
 const MAX_CHAT_MSG_LEN = 192;
 
+static cvarId;
 static bool:isModuleEnabled;
 
 public module_chat_cfg() {
+	config_observer_watch_cvar(
+		cvarId, 
+		"send_chat", 
+		config_option_number
+	);
 }
 
 public module_chat_init() {
-	bind_pcvar_num(register_cvar("tsarapi_send_chat", "", FCVAR_PROTECTED), isModuleEnabled);
+	cvarId = register_cvar("tsarapi_send_chat", "", FCVAR_PROTECTED);
+	bind_pcvar_num(cvarId, isModuleEnabled);
 
+	set_task(1.0, "@module_chat_register_clcmd", generate_task_id());
+}
+
+@module_chat_register_clcmd() {
 	register_clcmd("say", "@module_chat_on_clcmd_say");
 }
 

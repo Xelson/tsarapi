@@ -3,9 +3,16 @@
 #include <tsarapi_util>
 #include <fakemeta>
 
-static bool:isModuleEnabled 
+static cvarId;
+static bool:isModuleEnabled
 
 public module_changelevel_cfg() {
+	config_observer_watch_cvar(
+		cvarId, 
+		"send_changelevel", 
+		config_option_number
+	);
+
 	if(!isModuleEnabled) return;
 	
 	new EzJSON:root = ezjson_init_object();
@@ -16,5 +23,6 @@ public module_changelevel_cfg() {
 }
 
 public module_changelevel_init() {
-	bind_pcvar_num(register_cvar("tsarapi_send_changelevel", "", FCVAR_PROTECTED), isModuleEnabled);
+	cvarId = register_cvar("tsarapi_send_changelevel", "", FCVAR_PROTECTED);
+	bind_pcvar_num(cvarId, isModuleEnabled);
 }

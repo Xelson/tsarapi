@@ -13,8 +13,7 @@ static const PARTS_SENDING_INTERVAL = 10;
 static const ERROR_RETRY_INTERVAL = 5 * 60;
 
 new static TASKID_MAKE_TUPLE;
-
-new static const CVAR_NAME[] = "tsarapi_send_csstats";
+new static cvarId
 
 enum CsStatsType {
 	CSSTATS_TYPE_NONE,
@@ -24,9 +23,15 @@ enum CsStatsType {
 
 public module_csstats_cfg() {
 	if(isModuleEnabled && !is_supported_csstats_plugin_installed()) {
-		set_cvar_num(CVAR_NAME, 0);
+		set_pcvar_num(cvarId, 0);
 		log_amx("CsStats MySQL/CSstatsX SQL are not installed on the server. CsStats module is disabled.")
 	}
+
+	config_observer_watch_cvar(
+		cvarId, 
+		"send_csstats", 
+		config_option_number
+	);
 
 	scheduler_task_define(
 		"csstats_fetch",
@@ -37,7 +42,8 @@ public module_csstats_cfg() {
 }
 
 public module_csstats_init() {
-	bind_pcvar_num(register_cvar(CVAR_NAME, "", FCVAR_PROTECTED), isModuleEnabled);
+	cvarId = register_cvar("tsarapi_send_csstats", "", FCVAR_PROTECTED)
+	bind_pcvar_num(cvarId, isModuleEnabled);
 	
 	TASKID_MAKE_TUPLE = generate_task_id()
 	set_task(0.1, "@module_csstats_make_tuple", TASKID_MAKE_TUPLE);

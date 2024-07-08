@@ -3,14 +3,21 @@
 #include <tsarapi_util>
 #include <fakemeta>
 
+static cvarId
 static bool:isModuleEnabled
 static g_teamScore[2];
 
 public module_scoreboard_cfg() {
+	config_observer_watch_cvar(
+		cvarId, 
+		"send_scoreboard", 
+		config_option_number
+	);
 }
 
 public module_scoreboard_init() {
-	bind_pcvar_num(register_cvar("tsarapi_send_scoreboard", "", FCVAR_PROTECTED), isModuleEnabled);
+	cvarId = register_cvar("tsarapi_send_scoreboard", "", FCVAR_PROTECTED)
+	bind_pcvar_num(cvarId, isModuleEnabled);
 
 	register_event("TeamScore", "event_teamscore", "a");
 
@@ -86,5 +93,5 @@ module_scoreboard_snap_and_queue() {
 }
 
 @module_scoreboard_replace_event_if(Array:events) {
-	return 0; // возвращаем первую позицию т.к нам нужно отправлять только свежые данные из очереди
+	return 0; // возвращаем первую позицию т.к нам нужно отправлять только свежие данные из очереди
 }
