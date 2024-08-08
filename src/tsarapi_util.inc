@@ -55,6 +55,16 @@ stock ASSERT(any:predicate, err[], any:...) {
 	if(!predicate) abort(AMX_ERR_NATIVE, buffer);
 }
 
+stock log_sql_error(format[], any:...) {
+	static buffer[512];  vformat(buffer, charsmax(buffer), format, 2);
+	log_amx("sql error: %s", buffer);
+}
+
+stock log_http_error(format[], any:...) {
+	static buffer[512];  vformat(buffer, charsmax(buffer), format, 2);
+	log_amx("http error: %s", buffer);
+}
+
 get_next_systime_in(const time[]) {
 	static const SECONDS_IN_DAY = 86400;
 	new targetTime = parse_time(time, "%H:%M:%S");

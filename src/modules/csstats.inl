@@ -99,7 +99,10 @@ module_csstats_task_execute_step(taskId, page, limit) {
 }
 
 @module_csstats_sql_get_page(failstate, Handle:query, error[], errnum, data[], size) {
-	ASSERT(failstate == TQUERY_SUCCESS, error);
+	if(failstate != TQUERY_SUCCESS) {
+		log_sql_error(error);
+		return;
+	}
 
 	new taskId = data[0];
 
@@ -228,7 +231,10 @@ ezjson_object_map_fields_from_sql(EzJSON:object, Handle:query) {
 
 @module_csstats_on_post_request_complete(EzHttpRequest:request_id) {
 	new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
-	ASSERT(ezhttp_get_error_code(request_id) == EZH_OK, "http response error: %s", error);
+	if(ezhttp_get_error_code(request_id) != EZH_OK) {
+		log_http_error(error);
+		return;
+	}
 
 	new data[2]; ezhttp_get_user_data(request_id, data);
 	new taskId = data[0], bool:isShouldContinueTask = bool:data[1];

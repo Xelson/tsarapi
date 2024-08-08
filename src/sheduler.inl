@@ -3,6 +3,8 @@
 #include <sqlx>
 #include <easy_http>
 
+new const SCHEDULER_TABLE_NAME[] 	= "tsarapi_scheduled_tasks";
+
 enum _:STRUCT_SCHEDULER_TASK {
 	SCHEDULER_TASK_NAME[32], // DONT CHANGE THE POSITION
 	SCHEDULER_TASK_ID,
@@ -112,7 +114,7 @@ scheduler_task_set_state(taskId, EzJSON:st) {
 	scheduler_task_set_data(taskId, task);
 }
 
-scheduler_task_get_executing_at(taskId) {
+stock scheduler_task_get_executing_at(taskId) {
 	new task[STRUCT_SCHEDULER_TASK];
 	scheduler_task_get_data(taskId, task);
 
@@ -156,7 +158,10 @@ scheduler_task_sql_commit_changes(taskId) {
 }
 
 @on_scheduler_worker_sql_commit_changes(failstate, Handle:query, error[]) {
-	ASSERT(failstate == TQUERY_SUCCESS, error);
+	if(failstate != TQUERY_SUCCESS) {
+		log_sql_error(error);
+		return;
+	}
 }
 
 static scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
@@ -198,13 +203,19 @@ static scheduler_worker_sql_tuple_init() {
 }
 
 @on_scheduler_worker_sql_tables_created(failstate, Handle:query, error[]) {
-	ASSERT(failstate == TQUERY_SUCCESS, error);
+	if(failstate != TQUERY_SUCCESS) {
+		log_sql_error(error);
+		return;
+	}
 }
 
 @on_scheduler_worker_sql_sync_cache(failstate, Handle:query, error[]) {
 	scheduler_tasks_cache_merge_from_sql(query);
 
-	ASSERT(failstate == TQUERY_SUCCESS, error);
+	if(failstate != TQUERY_SUCCESS) {
+		log_sql_error(error);
+		return;
+	}
 }
 
 static scheduler_tasks_cache_merge_from_sql(Handle:query) {
@@ -240,12 +251,12 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 		ArrayPushCell(arrCachedTaskIds, taskId);
 	}
 
-	// for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
-	// 	if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
-	// 		scheduler_task_sql_commit_changes(taskId);
-	// 		scheduler_task_timer_continue(taskId);
-	// 	}
-	// }
+	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
+		if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
+			scheduler_task_sql_commit_changes(taskId);
+			scheduler_task_timer_continue(taskId);
+		}
+	}
 
 	ArrayDestroy(arrCachedTaskIds);
 }

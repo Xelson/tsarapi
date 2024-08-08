@@ -12,7 +12,6 @@ new const CONFIG_FILE_NAME[] 	= "tsarapi.cfg";
 new const API_URL[] 			= "http://csplugin.tsarvar.com/api";
 
 new const TIMESTAMP_FORMAT[] 		= "%Y-%m-%d %H:%M:%S";
-new const SCHEDULER_TABLE_NAME[] 	= "tsarapi_scheduled_tasks";
 
 const Float:SEND_QUEUE_EVENTS_INTERVAL = 3.0;
 const MAX_TOKEN_LEN = 64;
@@ -195,7 +194,11 @@ static queue_events_http_post(Array:events) {
 
 @on_queue_events_post_complete(EzHttpRequest:request_id) {
 	new error[64]; ezhttp_get_error_message(request_id, error, charsmax(error));
-	ASSERT(ezhttp_get_error_code(request_id) == EZH_OK, "http response error: %s", error);
+	
+	if(ezhttp_get_error_code(request_id) != EZH_OK) {
+		log_http_error(error);
+		return;
+	}
 }
 
 format_timestamp(output[], len, time = -1) {
