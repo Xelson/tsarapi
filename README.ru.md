@@ -8,20 +8,21 @@ Language: [EN](/README.md) | RU
 * Отображение чата и событий (убийства, смены карты) в реальном времени;
 * Отображение счета команд и их состав;
 * Отображение статистики игроков на базе [CSstatsX SQL](https://dev-cs.ru/resources/179/), [CsStats MySQL](https://fungun.net/shop/?p=show&id=3) и их модификаций;
-* Отображение бан-листа на базе бан-систем, совместимых с AmxBans ([Fresh Bans](https://dev-cs.ru/resources/196/), [Lite Bans](https://dev-cs.ru/resources/352/))
+* Отображение бан-листа на базе бан-систем, совместимых с AmxBans ([Fresh Bans](https://dev-cs.ru/resources/196/), [Lite Bans](https://dev-cs.ru/resources/352/)).
 
 [Пример интеграции с одним из серверов](https://tsarvar.com/ru/@EpicFunKnife/plugin)
 
 ## Требования для работы
-* [AmxModX 1.9.0+](https://github.com/alliedmodders/amxmodx)
-* Модуль [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp)
-* MySQL база данных
+* [AmxModX 1.9.0+](https://github.com/alliedmodders/amxmodx);
+* Модуль [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp);
+* MySQL база данных.
 
 ## Установка
 
-* Установить [AmxxEasyHttp](https://github.com/Next21Team/AmxxEasyHttp)
-* Скопировать файл конфигурации `/addons/amxmodx/configs/tsarapi.cfg` в соответствующую папку
-* Скомпилировать плагин и скопировать в `/addons/amxmodx/plugins`, подключить в `plugins.ini`
+* Установить [AmxxEasyHttp](https://github.com/Next21Team/AmxxEasyHttp);
+* Скопировать файл конфигурации `/addons/amxmodx/configs/tsarapi.cfg` в соответствующую папку;
+* Сконфигурировать квары `tsarapi_token` и `tsarapi_sql_*`;
+* Скомпилировать плагин и скопировать в `/addons/amxmodx/plugins`, подключить в `plugins.ini`.
 
 ## Конфигурация плагина
 
