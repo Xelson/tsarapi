@@ -93,5 +93,5 @@ module_scoreboard_snap_and_queue() {
 }
 
 @module_scoreboard_replace_event_if(Array:events) {
-	return 0; // возвращаем первую позицию т.к нам нужно отправлять только свежие данные из очереди
+	return 0; // we return the first pos because we need to send only fresh data from the queue
 }

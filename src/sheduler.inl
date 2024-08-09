@@ -230,7 +230,7 @@ static scheduler_tasks_cache_merge_from_sql(Handle:query) {
 
 		new taskId = scheduler_task_id_get_by_name(buffer);
 		if(taskId == -1) {
-			// Может быть добавить код для чистки удаленных из системы тасков	
+			// maybe add code to clean up deleted tasks from the system
 			server_print("not found in defined tasks", buffer);
 			continue;
 		}
