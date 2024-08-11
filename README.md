@@ -2,9 +2,9 @@ Language: EN | [RU](/README.ru.md)
 
 ![image](./logo.png)
 
-# Trsarapi
+# TsarAPI
 
-Plugin for AmxModX to interact and connect your Counter-Strike 1.6 game server with the service [Tsaravar](https://tsarvar.com/): 
+Plugin for AmxModX to interact and connect your Counter-Strike 1.6 game server with the service [Tsarvar](https://tsarvar.com/): 
 * Displaying chat and events (kills, map changes) in real-time;
 * Displaying team scores and compositions;
 * Displaying player statistics based on [CSstatsX SQL](https://dev-cs.ru/resources/179/), [CsStats MySQL](https://fungun.net/shop/?p=show&id=3) and their modifications;

@@ -2,9 +2,9 @@ Language: [EN](/README.md) | RU
 
 ![image](./logo.png)
 
-# Trsarapi
+# TsarAPI
 
-Плагин для AmxModX для взаимодействия и связи вашего игрового сервера Counter-Strike 1.6 с сервисом [Tsaravar](https://tsarvar.com/):
+Плагин для AmxModX для взаимодействия и связи вашего игрового сервера Counter-Strike 1.6 с сервисом [Tsarvar](https://tsarvar.com/):
 * Отображение чата и событий (убийства, смены карты) в реальном времени;
 * Отображение счета команд и их состав;
 * Отображение статистики игроков на базе [CSstatsX SQL](https://dev-cs.ru/resources/179/), [CsStats MySQL](https://fungun.net/shop/?p=show&id=3) и их модификаций;
