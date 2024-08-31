@@ -11,7 +11,7 @@ Plugin for AmxModX to interact and connect your Counter-Strike 1.6 game server w
 * Displaying the ban list based on ban systems compatible with AmxBans ([Fresh Bans](https://dev-cs.ru/resources/196/), [Lite Bans](https://dev-cs.ru/resources/352/)).
 
 ## Requirements
-* [AmxModX 1.9.0+](https://github.com/alliedmodders/amxmodx);
+* [AmxModX 1.8.2+](https://github.com/alliedmodders/amxmodx);
 * Module [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp);
 * MySQL database.
 

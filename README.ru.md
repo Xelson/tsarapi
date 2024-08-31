@@ -13,7 +13,7 @@ Language: [EN](/README.md) | RU
 [Пример интеграции с одним из серверов](https://tsarvar.com/ru/@EpicFunKnife/plugin)
 
 ## Требования для работы
-* [AmxModX 1.9.0+](https://github.com/alliedmodders/amxmodx);
+* [AmxModX 1.8.2+](https://github.com/alliedmodders/amxmodx);
 * Модуль [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp);
 * MySQL база данных.
 
