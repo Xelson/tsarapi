@@ -1,46 +1,25 @@
-// vim: set ts=4 sw=4 tw=99 noet:
-//
-// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
-// Copyright (C) The AMX Mod X Development Team.
-//
-// This software is licensed under the GNU General Public License, version 3 or higher.
-// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
-//     https://alliedmods.net/amxmodx-license
-
-//
-// Sorting Functions
-//
-
-//
-// All sort functions are based off the qsort() function from the
-//  C standard library, which uses the Quick Sort algorithm.
-// For more info, see: http://linux.wku.edu/~lamonml/algor/sort/sort.html
-//
+/* Sorting functions.
+ *
+ * by the AMX Mod X Development Team
+ *
+ * This file is provided as is (no warranties).
+ *
+ * All sort functions are based off the qsort() function from the 
+ *  C standard library, which uses the Quick Sort algorithm.
+ * For more info, see: http://linux.wku.edu/~lamonml/algor/sort/sort.html
+ */
 
 #if defined _sorting_included
   #endinput
 #endif
 #define _sorting_included
 
-/**
- * Contains sorting orders.
- */
 enum SortMethod
 {
 	Sort_Ascending = 0,
-	Sort_Descending,
-	Sort_Random,
+	Sort_Descending = 1,
 };
 
-/**
- * Data types for ADT Array Sorts
- */
-enum SortType
-{
-	Sort_Integer = 0,
-	Sort_Float,
- 	Sort_String,
-};
 /**
  * Basic sorting functions below.
  */
@@ -95,13 +74,3 @@ native SortCustom1D(array[], array_size, const comparefunc[], data[]="", data_si
  * Note that the parameters after elem2[] are all optional and you do not need to specify them.
  */
 native SortCustom2D(array[][], array_size, const comparefunc[], data[]="", data_size=0);
-
-/**
- * Sort an ADT Array. Specify the type as Integer, Float, or String.
- *
- * @param array			Array Handle to sort
- * @param order			Sort order to use, same as other sorts.
- * @param type			Data type stored in the ADT Array
- * @noreturn
- */
-native SortADTArray(Array:array, SortMethod:order, SortType:type);

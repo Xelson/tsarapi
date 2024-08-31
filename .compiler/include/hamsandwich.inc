@@ -1,21 +1,38 @@
-// vim: set ts=4 sw=4 tw=99 noet:
-//
-// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
-// Copyright (C) The AMX Mod X Development Team.
-//
-// This software is licensed under the GNU General Public License, version 3 or higher.
-// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
-//     https://alliedmods.net/amxmodx-license
-
-//
-// Ham Sandwich Functions
-//
+/**
+ * Ham Sandwich module include file.
+ *   (c) 2007, The AMX Mod X Development Team
+ *
+ * -
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by the
+ *  Free Software Foundation; either version 2 of the License, or (at
+ *  your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software Foundation,
+ *  Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+ *  In addition, as a special exception, the author gives permission to
+ *  link the code of this program with the Half-Life Game Engine ("HL
+ *  Engine") and Modified Game Libraries ("MODs") developed by Valve,
+ *  L.L.C ("Valve"). You must obey the GNU General Public License in all
+ *  respects for all of the code used other than the HL Engine and MODs
+ *  from Valve. If you modify this file, you may extend this exception
+ *  to your version of the file, but you are not obligated to do so. If
+ *  you do not wish to do so, delete this exception statement from your
+ *  version.
+ */
 
 /**
  * Ham Sandwich is a module that is used to hook and call virtual functions of 
  *  entities.
  * Virtual functions are mod-specific functions.  This means that in order
- *  for this to work on a mod, it needs to be configured with the gamedata
+ *  for this to work on a mod, it needs to be configured with the hamdata.ini
  *  file.
  * Be very careful with parameter passing to these functions.
  */
@@ -27,9 +44,13 @@
 
 #include <ham_const>
 
-#pragma reqlib hamsandwich
-#if !defined AMXMODX_NOAUTOLOAD
-	#pragma loadlib hamsandwich
+#if AMXX_VERSION_NUM >= 175
+	#pragma reqlib hamsandwich
+	#if !defined AMXMODX_NOAUTOLOAD
+		#pragma loadlib hamsandwich
+	#endif
+#else
+	#pragma library hamsandwich
 #endif
 
 /**
@@ -41,25 +62,9 @@
  * @param EntityClass	The entity classname to hook.
  * @param callback		The forward to call.
  * @param post			Whether or not to forward this in post.
- * @param specialbot	Whether or not to enable support for bot without "player" classname.
  * @return 				Returns a handle to the forward.  Use EnableHamForward/DisableHamForward to toggle the forward on or off.
  */
-native HamHook:RegisterHam(Ham:function, const EntityClass[], const Callback[], Post=0, bool:specialbot = false);
-
-/**
- * Hooks the virtual table for the player class.
- * An example would be: RegisterHam(Ham_TakeDamage, "player_hurt");
- * Look at the Ham enum for parameter lists.
- *
- * @param function		The function to hook.
- * @param callback		The forward to call.
- * @param post			Whether or not to forward this in post.
- * @return 				Returns a handle to the forward.  Use EnableHamForward/DisableHamForward to toggle the forward on or off.
- */
-stock HamHook:RegisterHamPlayer(Ham:function, const Callback[], Post=0)
-{
-	return RegisterHam(function, "player", Callback, Post, true);
-}
+native HamHook:RegisterHam(Ham:function, const EntityClass[], const Callback[], Post=0);
 
 /**
  * Hooks the virtual table for the specified entity's class.
@@ -265,9 +270,6 @@ native SetHamParamVector(which, const Float:value[3]);
  * Sets a parameter on the fly of the current hook.  This has no effect in post hooks.
  * Use this on parameters that are entities.
  *
- * @note Due to a historical bug, the changes made by this native are not reflected in the corresponding post forward
- *       for backward compatibility reasons. Use SetHamParamEntity2 if this is required.
- *
  * @param which				Which parameter to change.  Starts at 1, and works up from the left to right.  1 is always "this".
  * @param value				The value to change it to.
  */
@@ -275,21 +277,10 @@ native SetHamParamEntity(which, value);
 
 /**
  * Sets a parameter on the fly of the current hook.  This has no effect in post hooks.
- * Use this on parameters that are entities.
- *
- * @note Same as SetHamParamEntity except the changes made by this native are reflected in the corresponding post forward.
- *
- * @param which				Which parameter to change.  Starts at 1, and works up from the left to right.  1 is always "this".
- * @param value				The value to change it to.
- */
-native SetHamParamEntity2(which, value);
-
-/**
- * Sets a parameter on the fly of the current hook.  This has no effect in post hooks.
  * Use this on parameters that are strings.
  *
  * @param which				Which parameter to change.  Starts at 1, and works up from the left to right.  1 is always "this".
- * @param ouput				The value to change it to.
+ * @param value				The value to change it to.
  */
 native SetHamParamString(which, const output[]);
 
@@ -298,57 +289,9 @@ native SetHamParamString(which, const output[]);
  * Use this on parameters that are trace result handles.
  *
  * @param which				Which parameter to change.  Starts at 1, and works up from the left to right.  1 is always "this".
- * @param tr_handle			The value to change it to.
+ * @param value				The value to change it to.
  */
 native SetHamParamTraceResult(which, tr_handle);
-
-/**
- * Sets a parameter on the fly of the current hook.  This has no effect in post hooks.
- * Use this on parameters that are trace result handles.
- *
- * @param which				Which parameter to change.  Starts at 1, and works up from the left to right.  1 is always "this".
- * @param iteminfo_handle	The value to change it to.
- */
-native SetHamParamItemInfo(which, iteminfo_handle);
-
-
-/**
- * Gets a parameter on the fly of the current hook.
- * Use this on parameters that are iteminfo result handles.
- *
- * @param iteminfo_handle	Item info handle.
- * @param type				Item info type. See HamItemInfo constants.
- */
-native GetHamItemInfo(iteminfo_handle, HamItemInfo:type, any:...);
-
-/**
- * Sets a parameter on the fly of the current hook.
- * Use this on parameters that are iteminfo result handles.
- *
- * @param iteminfo_handle	Item info handle.
- * @param type				Item info type. See HamItemInfo_ constants.
- */
-native SetHamItemInfo(iteminfo_handle, HamItemInfo:type, any:...);
-
-/**
- * Creates an ItemInfo handle.  This value should never be altered.
- * The handle can be used in Get/SetHamItemInfo.
- *
- * NOTE: You must call FreeHamItemInfo() on every handle made with CreateHamItemInfo().
- *
- * @return			A new ItemInfo handle.
- */
-native CreateHamItemInfo();
-
-/** 
- * Frees an ItemIndo handle created with CreateHamItemInfo().  Do not call
- * this more than once per handle, or on handles not created through
- * CreateHamItemInfo().
- *
- * @param itemInfo_handle	ItemInfo handle created via CreateHamItemInfo().
- * @noreturn
- */
-native FreeHamItemInfo(itemInfo_handle);
 
 
 /**

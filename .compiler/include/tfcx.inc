@@ -1,27 +1,24 @@
-// vim: set ts=4 sw=4 tw=99 noet:
-//
-// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
-// Copyright (C) The AMX Mod X Development Team.
-//
-// This software is licensed under the GNU General Public License, version 3 or higher.
-// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
-//     https://alliedmods.net/amxmodx-license
-
-//
-// TFCX Functions
-//
+/* tfcX functions
+ *
+ * (c) 2004, SidLuke
+ * This file is provided as is (no warranties).
+ */
 
 #if defined _tfcx_included
-	#endinput
+  #endinput
 #endif
 #define _tfcx_included
 
 #include <tfcconst>
 #include <tfcstats>
 
-#pragma reqclass xstats
-#if !defined AMXMODX_NOAUTOLOAD
-	#pragma defclasslib xstats tfcx
+#if AMXX_VERSION_NUM >= 175
+ #pragma reqclass xstats
+ #if !defined AMXMODX_NOAUTOLOAD
+  #pragma defclasslib xstats tfcx
+ #endif
+#else
+ #pragma library tfcx
 #endif
 
 /************* Shared Natives Start ********************************/

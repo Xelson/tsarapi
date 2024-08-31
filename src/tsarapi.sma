@@ -4,6 +4,8 @@
 #include <easy_http>
 #include <ezjson_gc>
 
+#include <amxx_182_compact.inl>
+
 new const PLUGIN[]  	= "Tsarapi"
 new const VERSION[] 	= "0.3.1"
 new const AUTHOR[]		= "ekke bea?"
@@ -19,7 +21,9 @@ const MAX_TOKEN_LEN = 64;
 new g_token[MAX_TOKEN_LEN], g_pluginId;
 
 public plugin_init() {
-	g_pluginId = register_plugin(PLUGIN, VERSION, AUTHOR, "https://tsarvar.com");
+	g_pluginId = register_plugin(PLUGIN, VERSION, AUTHOR);
+	amxx_182_compact_init(g_pluginId) 
+
 	bind_pcvar_string(register_cvar("tsarapi_token", "", FCVAR_PROTECTED), g_token, charsmax(g_token));
 
 	scheduler_worker_init();

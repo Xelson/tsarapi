@@ -1,25 +1,25 @@
-// vim: set ts=4 sw=4 tw=99 noet:
-//
-// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
-// Copyright (C) The AMX Mod X Development Team.
-//
-// This software is licensed under the GNU General Public License, version 3 or higher.
-// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
-//     https://alliedmods.net/amxmodx-license
-
-//
-// Natural Selection Module Functions
-//
+/* NS module functions
+ *
+ * by the AMX Mod X Development Team
+ *
+ * This file is provided as is (no warranties).
+ */
 
 #if defined NS_INC
 	#endinput
 #endif
-#define NS_INC
+#define NS_INC	
 
-#pragma reqlib ns
-#if !defined AMXMODX_NOAUTOLOAD
-	#pragma loadlib ns
+#if AMXX_VERSION_NUM >= 175
+ #pragma reqlib ns
+ #if !defined AMXMODX_NOAUTOLOAD
+  #pragma loadlib ns
+ #endif
+#else
+ #pragma library ns
 #endif
+
+
 
 #include <ns_const>
 
@@ -537,7 +537,6 @@ forward client_spawn(id);
  * @param Damage		The amount of damage being done.
  * @param DamageType	The damage type being done (bitmask).
  */
-#pragma deprecated It is suggested to use hamsandwich for this action instead.
 native ns_takedamage(IDVictim, IDInflictor, IDAttacker, Float:Damage, DamageType);
 
 /**

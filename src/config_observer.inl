@@ -16,9 +16,11 @@ enum _:CONFIG_OPTIONS {
 }
 
 static Trie:trieOptionsByCvarId;
+static Array:arrOptionsByCvarIdIndex;
 
 config_observer_init() {
 	trieOptionsByCvarId = TrieCreate();
+	arrOptionsByCvarIdIndex = ArrayCreate();
 
 	set_task(10.0, "@config_observer_task_queue_event", generate_task_id())
 }
@@ -31,11 +33,13 @@ config_observer_watch_cvar(cvarId, const optionName[], ConfigOptionType:optionTy
 	data[CO_CVAR_ID] = cvarId;
 
 	TrieSetArray(trieOptionsByCvarId, _fmt("%d", cvarId), data, sizeof(data));
+	if(ArrayFindValue(arrOptionsByCvarIdIndex, cvarId) == -1)
+		ArrayPushCell(arrOptionsByCvarIdIndex, cvarId)
 
 	hook_cvar_change(cvarId, "@config_observer_on_cvar_change");
 }
 
-@config_observer_on_cvar_change(cvarId, const oldValue[], const newValue[]) {
+@config_observer_on_cvar_change(cvarId) {
 	new data[CONFIG_OPTIONS];
 
 	if(TrieGetArray(trieOptionsByCvarId, _fmt("%d", cvarId), data, sizeof(data))) {
@@ -52,20 +56,18 @@ config_observer_watch_cvar(cvarId, const optionName[], ConfigOptionType:optionTy
 
 config_observer_queue_event() {
 	new EzJSON:root = ezjson_init_object();
-	new TrieIter:iter = TrieIterCreate(trieOptionsByCvarId);
-	new data[CONFIG_OPTIONS];
 
-	for(; !TrieIterEnded(iter); TrieIterNext(iter)) {
-		TrieIterGetArray(iter, data, sizeof(data));
+	for(new i, cvarId, data[CONFIG_OPTIONS]; i < ArraySize(arrOptionsByCvarIdIndex); i++) {
+		cvarId = ArrayGetCell(arrOptionsByCvarIdIndex, i)
 
-		switch(data[CO_TYPE]) {
-			case config_option_number: ezjson_object_set_number(root, data[CO_NAME], str_to_num(data[CO_VALUE]));
-			case config_option_real: ezjson_object_set_real(root, data[CO_NAME], str_to_float(data[CO_VALUE]));
-			case config_option_string: ezjson_object_set_string(root, data[CO_NAME], data[CO_VALUE]);
+		if(TrieGetArray(trieOptionsByCvarId, _fmt("%d", cvarId), data, sizeof(data))) {
+			switch(data[CO_TYPE]) {
+				case config_option_number: ezjson_object_set_number(root, data[CO_NAME], str_to_num(data[CO_VALUE]));
+				case config_option_real: ezjson_object_set_real(root, data[CO_NAME], str_to_float(data[CO_VALUE]));
+				case config_option_string: ezjson_object_set_string(root, data[CO_NAME], data[CO_VALUE]);
+			}
 		}
 	}
-
-	TrieIterDestroy(iter);
 
 	queue_event_emit(
 		"config", root,
