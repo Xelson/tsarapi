@@ -50,6 +50,10 @@ public plugin_cfg() {
 	module_scoreboard_cfg();
 	module_changelevel_cfg();
 
+	set_task(0.2, "@sql_connection_task_make_tuple", generate_task_id());
+}
+
+@sql_connection_task_make_tuple() {
 	sql_connection_make_tuple();
 }
 
