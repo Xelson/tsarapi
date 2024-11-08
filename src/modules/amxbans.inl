@@ -59,7 +59,7 @@ public module_amxbans_init() {
 
 	if(!isModuleEnabled) {
 		module_amxbans_task_stop_and_schedule_next(taskId);
-		scheduler_task_sql_commit_changes(taskId);
+		scheduler_task_commit_changes(taskId);
 		return;
 	}
 
@@ -157,7 +157,7 @@ module_amxbans_send_ban_event(banid) {
 		log_amx("Error after post request to the API. Rescheduling the task in %d min", ERROR_RETRY_INTERVAL / 60);
 
 		scheduler_task_set_executing_at(taskId, get_systime() + ERROR_RETRY_INTERVAL);
-		scheduler_task_sql_commit_changes(taskId);
+		scheduler_task_commit_changes(taskId);
 
 		return;
 	}
@@ -165,7 +165,7 @@ module_amxbans_send_ban_event(banid) {
 	if(isShouldContinueTask) module_amxbans_task_continue(taskId);
 	else module_amxbans_task_stop_and_schedule_next(taskId);
 
-	scheduler_task_sql_commit_changes(taskId);
+	scheduler_task_commit_changes(taskId);
 }
 
 module_amxbans_task_continue(taskId) {

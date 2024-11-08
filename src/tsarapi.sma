@@ -7,7 +7,7 @@
 #include <amxx_182_compact.inl>
 
 new const PLUGIN[]  	= "Tsarapi"
-new const VERSION[] 	= "0.3.1"
+new const VERSION[] 	= "0.4.0"
 new const AUTHOR[]		= "ekke bea?"
 
 new const CONFIG_FILE_NAME[] 	= "tsarapi.cfg";
@@ -36,8 +36,6 @@ public plugin_init() {
 	module_killfeed_init();
 	module_scoreboard_init();
 	module_changelevel_init();
-
-	sql_init();
 }
 
 public plugin_cfg() {
@@ -50,34 +48,7 @@ public plugin_cfg() {
 	module_scoreboard_cfg();
 	module_changelevel_cfg();
 
-	set_task(0.2, "@sql_connection_task_make_tuple", generate_task_id());
-}
-
-@sql_connection_task_make_tuple() {
-	sql_connection_make_tuple();
-}
-
-new g_sqlHost[64], g_sqlUser[64], g_sqlPassword[128], g_sqlDatabase[64];
-new Handle:g_sqlTuple;
-
-static sql_init() {
-	bind_pcvar_string(register_cvar("tsarapi_sql_host", "", FCVAR_PROTECTED), g_sqlHost, charsmax(g_sqlHost));
-	bind_pcvar_string(register_cvar("tsarapi_sql_user", "", FCVAR_PROTECTED), g_sqlUser, charsmax(g_sqlUser));
-	bind_pcvar_string(register_cvar("tsarapi_sql_pass", "", FCVAR_PROTECTED), g_sqlPassword, charsmax(g_sqlPassword));
-	bind_pcvar_string(register_cvar("tsarapi_sql_db", "", FCVAR_PROTECTED), g_sqlDatabase, charsmax(g_sqlDatabase));
-}
-
-static sql_connection_make_tuple() {
-	if(g_sqlTuple != Empty_Handle) SQL_FreeHandle(g_sqlTuple);
-	g_sqlTuple = SQL_MakeDbTuple(g_sqlHost, g_sqlUser, g_sqlPassword, g_sqlDatabase, 1);
-
-	scheduler_worker_sql_tuple_init();
-}
-
-sql_make_query(const query[], const handler[], const data[] = "", len = 0) {
-	ASSERT(g_sqlTuple, "Trying to send SQL query without connection tuple");
-
-	SQL_ThreadQuery(g_sqlTuple, handler, query, data, len);
+	scheduler_worker_cfg();
 }
 
 static config_exec() {
@@ -217,13 +188,7 @@ parse_timestamp(const input[], time = -1) {
 	return parse_time(input, TIMESTAMP_FORMAT, time);
 }
 
-get_localhost() {
-	static address[MAX_IP_WITH_PORT_LENGTH];
-	get_user_ip(0, address, charsmax(address));
-	return address;
-}
-
-#include <sheduler.inl>
+#include <scheduler.inl>
 #include <config_observer.inl>
 #include <modules/chat.inl>
 #include <modules/killfeed.inl>

@@ -1,9 +1,7 @@
 #include <amxmodx>
 #include <amxmisc>
-#include <sqlx>
 #include <easy_http>
-
-new const SCHEDULER_TABLE_NAME[] 	= "tsarapi_scheduled_tasks";
+#include <nvault>
 
 enum _:STRUCT_SCHEDULER_TASK {
 	SCHEDULER_TASK_NAME[32], // DONT CHANGE THE POSITION
@@ -14,12 +12,20 @@ enum _:STRUCT_SCHEDULER_TASK {
 	SCHEDULER_TASK_EXECUTING_AT,
 	SCHEDULER_TASK_GET_EXEC_TIME
 }
-new Array:g_arrSheduledTasks
+new Array:g_arrScheduledTasks
+
+static vault
 
 static scheduler_worker_init() {
-	g_arrSheduledTasks = ArrayCreate(STRUCT_SCHEDULER_TASK);
+	g_arrScheduledTasks = ArrayCreate(STRUCT_SCHEDULER_TASK);
 
 	register_srvcmd("tsarapi_task_start", "@on_srvcmd_task_start");
+}
+
+static scheduler_worker_cfg() {
+	vault = nvault_open("tsarapi_scheduler_tasks");
+	if(vault != INVALID_HANDLE)
+		scheduler_tasks_cache_merge_from_vault();
 }
 
 @on_srvcmd_task_start() {
@@ -72,7 +78,7 @@ scheduler_task_define(
 }
 
 scheduler_tasks_count() {
-	return ArraySize(g_arrSheduledTasks);
+	return ArraySize(g_arrScheduledTasks);
 }
 
 scheduler_task_is_valid_id(taskId) {
@@ -82,23 +88,23 @@ scheduler_task_is_valid_id(taskId) {
 scheduler_task_get_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
 
-	ArrayGetArray(g_arrSheduledTasks, taskId, task);
+	ArrayGetArray(g_arrScheduledTasks, taskId, task);
 }
 
 scheduler_task_get_name(taskId, dest[], len) {
 	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
 
-	ArrayGetString(g_arrSheduledTasks, taskId, dest, len);
+	ArrayGetString(g_arrScheduledTasks, taskId, dest, len);
 }
 
 static scheduler_task_set_data(taskId, task[STRUCT_SCHEDULER_TASK]) {
 	ASSERT(scheduler_task_is_valid_id(taskId), "Invalid task id");
 
-	ArraySetArray(g_arrSheduledTasks, taskId, task);
+	ArraySetArray(g_arrScheduledTasks, taskId, task);
 }
 
 static scheduler_task_push_data(task[STRUCT_SCHEDULER_TASK]) {
-	return ArrayPushArray(g_arrSheduledTasks, task);
+	return ArrayPushArray(g_arrScheduledTasks, task);
 }
 
 EzJSON:scheduler_task_get_state(taskId) {
@@ -122,7 +128,7 @@ stock scheduler_task_get_executing_at(taskId) {
 }
 
 scheduler_task_id_get_by_name(const name[]) {
-	return ArrayFindString(g_arrSheduledTasks, name);
+	return ArrayFindString(g_arrScheduledTasks, name);
 }
 
 scheduler_task_set_executing_at(taskId, executingAt) {
@@ -135,33 +141,18 @@ scheduler_task_set_executing_at(taskId, executingAt) {
 	scheduler_task_set_data(taskId, task);
 }
 
-scheduler_task_sql_commit_changes(taskId) {
+scheduler_task_commit_changes(taskId) {
 	new task[STRUCT_SCHEDULER_TASK];
 	scheduler_task_get_data(taskId, task);
 
 	new serializedState[512];
 	ezjson_serial_to_string(task[SCHEDULER_TASK_STATE], serializedState, charsmax(serializedState));
-	SQL_QuoteString(Empty_Handle, serializedState, charsmax(serializedState), serializedState);
 
 	new serializedTime[32];
 	format_timestamp(serializedTime, charsmax(serializedTime), task[SCHEDULER_TASK_EXECUTING_AT]);
 
-	sql_make_query(
-		_fmt("INSERT INTO `%s` VALUES ('%s', '%s', '%s', '%s') \
-			ON DUPLICATE KEY UPDATE state = '%s', executing_at = '%s'",
-			SCHEDULER_TABLE_NAME, 
-			get_localhost(), task[SCHEDULER_TASK_NAME], serializedState, serializedTime,
-			serializedState, serializedTime
-		),
-		"@on_scheduler_worker_sql_commit_changes"
-	);
-}
-
-@on_scheduler_worker_sql_commit_changes(failstate, Handle:query, error[]) {
-	if(failstate != TQUERY_SUCCESS) {
-		log_sql_error(error);
-		return;
-	}
+	nvault_pset(vault, task[SCHEDULER_TASK_NAME], _fmt("^"%s^"", serializedTime))
+	nvault_pset(vault, _fmt("%s_state",task[SCHEDULER_TASK_NAME]), serializedState)
 }
 
 static scheduler_task_cache_merge(task[STRUCT_SCHEDULER_TASK]) {
@@ -184,81 +175,61 @@ static _scheduler_task_get_next_execution_time(task[STRUCT_SCHEDULER_TASK]) {
 	return time;
 }
 
-static scheduler_worker_sql_tuple_init() {
- 	sql_make_query(
-		_fmt("CREATE TABLE IF NOT EXISTS `%s` ( \ 
-			address VARCHAR(24) NOT NULL, \
-			name VARCHAR(32) NOT NULL, \
-			state TEXT NOT NULL, \
-			executing_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, \
-			UNIQUE KEY unique_id (address, name) \
-		)", SCHEDULER_TABLE_NAME),
-		"@on_scheduler_worker_sql_tables_created"
-	);
+static scheduler_tasks_cache_merge_from_vault() {
+	enum _:FIELDS { arg_executing_at };
 
-	sql_make_query(
-		_fmt("SELECT * FROM `%s` WHERE address = '%s'", SCHEDULER_TABLE_NAME, get_localhost()),
-		"@on_scheduler_worker_sql_sync_cache"
-	);
-}
+	new Array:arrFoundTaskIds = ArrayCreate();
 
-@on_scheduler_worker_sql_tables_created(failstate, Handle:query, error[]) {
-	if(failstate != TQUERY_SUCCESS) {
-		log_sql_error(error);
-		return;
-	}
-}
-
-@on_scheduler_worker_sql_sync_cache(failstate, Handle:query, error[]) {
-	scheduler_tasks_cache_merge_from_sql(query);
-
-	if(failstate != TQUERY_SUCCESS) {
-		log_sql_error(error);
-		return;
-	}
-}
-
-static scheduler_tasks_cache_merge_from_sql(Handle:query) {
-	new buffer[1024];
-	enum { field_address, field_name, field_state, field_executing_at };
-	#pragma unused field_address
-
-	new Array:arrCachedTaskIds = ArrayCreate();
-
-	for(new task[STRUCT_SCHEDULER_TASK]; SQL_MoreResults(query); SQL_NextRow(query)) {
-		SQL_ReadResult(query, field_name, buffer, charsmax(buffer));
-
-		new taskId = scheduler_task_id_get_by_name(buffer);
-		if(taskId == -1) {
-			// maybe add code to clean up deleted tasks from the system
-			server_print("%s not found in defined tasks", buffer);
-			continue;
-		}
-
+	for(new taskId, value[256], args[FIELDS][256];
+		taskId < scheduler_tasks_count(); 
+		taskId++
+	) {
+		new task[STRUCT_SCHEDULER_TASK], timestamp
 		scheduler_task_get_data(taskId, task);
-		SQL_ReadResult(query, field_state, buffer, charsmax(buffer));
-		
-		new EzJSON:root = ezjson_parse(buffer);
+
+		if(!nvault_lookup(vault, task[SCHEDULER_TASK_NAME], value, charsmax(value), timestamp))
+			continue;
+
+		parse(value, args[arg_executing_at], charsmax(args[]));
+		task[SCHEDULER_TASK_EXECUTING_AT] = parse_timestamp(args[arg_executing_at]);
+
+		if(!nvault_lookup(vault, _fmt("%s_state",task[SCHEDULER_TASK_NAME]), value, charsmax(value), timestamp))
+			continue;
+
+		new EzJSON:root = ezjson_parse(value);
 		if(root == EzInvalid_JSON) root = ezjson_init_object();
 		task[SCHEDULER_TASK_STATE] = root;
-
-		SQL_ReadResult(query, field_executing_at, buffer, charsmax(buffer));
-		task[SCHEDULER_TASK_EXECUTING_AT] = parse_timestamp(buffer);
 
 		scheduler_task_cache_merge(task);
 		_scheduler_task_timer_continue(task);
 
-		ArrayPushCell(arrCachedTaskIds, taskId);
+		ArrayPushCell(arrFoundTaskIds, taskId);
+
+		_scheduler_task_write_to_console(task);
 	}
 
 	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
-		if(ArrayFindValue(arrCachedTaskIds, taskId) == -1) {
-			scheduler_task_sql_commit_changes(taskId);
+		if(ArrayFindValue(arrFoundTaskIds, taskId) == -1) {
+			scheduler_task_commit_changes(taskId);
 			scheduler_task_timer_continue(taskId);
+
+			scheduler_task_write_to_console(taskId);
 		}
 	}
 
-	ArrayDestroy(arrCachedTaskIds);
+	ArrayDestroy(arrFoundTaskIds);
+}
+
+scheduler_task_write_to_console(taskId) {
+	new task[STRUCT_SCHEDULER_TASK];
+	scheduler_task_get_data(taskId, task);
+
+	_scheduler_task_write_to_console(task);
+}	
+
+_scheduler_task_write_to_console(task[STRUCT_SCHEDULER_TASK]) {
+	new time[32]; format_time(time, charsmax(time), "%d/%m/%Y - %H:%M:%S", task[SCHEDULER_TASK_EXECUTING_AT]);
+	log_amx("Task %s executing at %s", task[SCHEDULER_TASK_NAME], time);
 }
 
 scheduler_task_timer_continue(taskId) {
@@ -306,4 +277,6 @@ scheduler_task_execute(taskId) {
 static _scheduler_task_execute(task[STRUCT_SCHEDULER_TASK]) {
 	new ret;
 	ExecuteForward(task[SCHEDULER_TASK_HANDLER], ret, task[SCHEDULER_TASK_ID]);
+
+	log_amx("Executing task %s...", task[SCHEDULER_TASK_NAME]);
 }
