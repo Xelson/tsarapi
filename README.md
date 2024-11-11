@@ -6,19 +6,18 @@ Language: EN | [RU](/README.ru.md)
 
 Plugin for AmxModX to interact and connect your Counter-Strike 1.6 game server with the service [Tsarvar](https://tsarvar.com/): 
 * Displaying chat and events (kills, map changes) in real-time;
-* Displaying team scores and compositions;
+* Displaying team scores and lineup;
 * Displaying player statistics based on [CSstatsX SQL](https://dev-cs.ru/resources/179/), [CsStats MySQL](https://fungun.net/shop/?p=show&id=3) and their modifications;
 * Displaying the ban list based on ban systems compatible with AmxBans ([Fresh Bans](https://dev-cs.ru/resources/196/), [Lite Bans](https://dev-cs.ru/resources/352/)).
 
 ## Requirements
-* [AmxModX 1.8.2+](https://github.com/alliedmodders/amxmodx);
+* [AmxModX 1.8.3-dev-git4537](https://github.com/alliedmodders/amxmodx);
 * Module [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp);
-* MySQL database.
 
 ## Installation
 * Install [AmxxEasyHttp](https://github.com/Next21Team/AmxxEasyHttp);
 * Copy the configuration file `/addons/amxmodx/configs/tsarapi.cfg` to the corresponding folder;
-* Configure `tsarapi_token` and `tsarapi_sql_*` cvars;
+* Configure `tsarapi_token` cvar;
 * Compile the plugin and copy it to `/addons/amxmodx/plugins`, then enable it in plugins.ini.
 
 ## Plugin Configuration
@@ -43,10 +42,4 @@ tsarapi_send_scoreboard "1"
 
 // Send map change events
 tsarapi_send_changelevel "1"
-
-// MySQL database credentials for the task scheduler
-tsarapi_sql_host "localhost"
-tsarapi_sql_user ""
-tsarapi_sql_pass ""
-tsarapi_sql_db ""
 ```

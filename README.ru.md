@@ -13,15 +13,14 @@ Language: [EN](/README.md) | RU
 [Пример интеграции с одним из серверов](https://tsarvar.com/ru/@EpicFunKnife/plugin)
 
 ## Требования для работы
-* [AmxModX 1.8.2+](https://github.com/alliedmodders/amxmodx);
+* [AmxModX 1.8.3-dev-git4537](https://github.com/alliedmodders/amxmodx);
 * Модуль [AmxxEasyHttp v1.2.0+](https://github.com/Next21Team/AmxxEasyHttp);
-* MySQL база данных.
 
 ## Установка
 
 * Установить [AmxxEasyHttp](https://github.com/Next21Team/AmxxEasyHttp);
 * Скопировать файл конфигурации `/addons/amxmodx/configs/tsarapi.cfg` в соответствующую папку;
-* Сконфигурировать квары `tsarapi_token` и `tsarapi_sql_*`;
+* Сконфигурировать квар `tsarapi_token`;
 * Скомпилировать плагин и скопировать в `/addons/amxmodx/plugins`, подключить в `plugins.ini`.
 
 ## Конфигурация плагина
@@ -47,11 +46,5 @@ tsarapi_send_scoreboard "1"
 
 // Отправлять событие смены карты
 tsarapi_send_changelevel "1"
-
-// Данные от MySQL базы данных для планировщика задач
-tsarapi_sql_host "localhost"
-tsarapi_sql_user ""
-tsarapi_sql_pass ""
-tsarapi_sql_db ""
 ```
 
