@@ -7,5 +7,6 @@
     ],
     "files.associations": {
         "*.inl": "amxxpawn"
-    }
+    },
+    "amxxpawn.compiler.executablePath": "${workspaceRoot}/.compiler/amxxpc.exe"
 }

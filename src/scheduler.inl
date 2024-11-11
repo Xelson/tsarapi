@@ -178,9 +178,10 @@ static _scheduler_task_get_next_execution_time(task[STRUCT_SCHEDULER_TASK]) {
 static scheduler_tasks_cache_merge_from_vault() {
 	enum _:FIELDS { arg_executing_at };
 
+	new taskId, value[256], args[FIELDS][256]
 	new Array:arrFoundTaskIds = ArrayCreate();
 
-	for(new taskId, value[256], args[FIELDS][256];
+	for(taskId = 0;
 		taskId < scheduler_tasks_count(); 
 		taskId++
 	) {
@@ -208,7 +209,7 @@ static scheduler_tasks_cache_merge_from_vault() {
 		_scheduler_task_write_to_console(task);
 	}
 
-	for(new taskId; taskId < scheduler_tasks_count(); taskId++) {
+	for(taskId = 0; taskId < scheduler_tasks_count(); taskId++) {
 		if(ArrayFindValue(arrFoundTaskIds, taskId) == -1) {
 			scheduler_task_commit_changes(taskId);
 			scheduler_task_timer_continue(taskId);

@@ -1,9 +1,15 @@
-/* Counter-Strike functions
-*
-* by the AMX Mod X Development Team
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// Counter-Strike Functions
+//
 
 #if defined _cstrike_included
   #endinput
@@ -343,6 +349,49 @@ native cs_set_c4_explode_time(index, Float:value);
 native bool:cs_get_c4_defusing(c4index);
 
 native cs_set_c4_defusing(c4index, bool:defusing);
+
+/**
+ * Creates an entity using Counter-Strike's custom CreateNamedEntity wrapper.
+ *
+ * @note Unlike other mods CS keeps track of entities using a custom hashtable.
+ *       This function adds entities to this hashtable, providing benefits over
+ *       the default CreateNamedEntity (used by create_entity() for example):
+ *       - Storing entities in a hashtable allows CS to improve classname lookup
+ *         performance compared to functions like FindEntityByString (used by
+ *         find_ent_by_class() for example) that usually have to loop
+ *         through all entities incrementally.
+ *       - As CS exclusively uses the hashtable for classname lookup, entities
+ *         created using the default engine functions will not be found by the
+ *         game. For example "weaponbox" entities are supposed to be
+ *         automatically cleaned up on round restart but are not considered if
+ *         they have not been added to the hashtable.
+ * @note The faster hashtable lookup can be utilized with cs_find_ent_by_class()
+ *
+ * @param classname     Entity class name
+ *
+ * @return              Index of the created entity, 0 otherwise.
+ */
+native cs_create_entity(const classname[]);
+
+/**
+ * Finds an entity in the world using Counter-Strike's custom FindEntityByString
+ * wrapper.
+ *
+ * @note Unlike other mods CS keeps track of entities using a custom hashtable.
+ *       This function utilizes the hasthable and allows for considerably faster
+ *       classname lookup compared to the default FindEntityByString (used by
+ *       find_ent_by_class() for example).
+ * @note This exclusively considers entities in the hashtable, created by the
+ *       game itself or using cs_create_entity().
+ *
+ * @param start_index   Entity index to start searching from. -1 to start from
+ *                      the first entity
+ * @param classname     Classname to search for
+ *
+ * @return              Entity index > 0 if found, 0 otherwise
+ */
+native cs_find_ent_by_class(start_index, const classname[]);
+
 /**
  * Called when CS internally fires a command to a player.  It does this for a few 
  * functions, most notably rebuy/autobuy functionality.  This is also used to pass
@@ -353,3 +402,65 @@ native cs_set_c4_defusing(c4index, bool:defusing);
  * @return				PLUGIN_HANDLED to block, PLUGIN_CONTINUE for normal operation.
  */
 forward CS_InternalCommand(id, const cmd[]);
+
+
+/**
+ * The following constants are used with CS_OnBuy[Attempt] forwards.
+ */
+#define CSI_P228				CSW_P228
+#define CSI_SCOUT				CSW_SCOUT
+#define CSI_HEGRENADE			CSW_HEGRENADE
+#define CSI_XM1014				CSW_XM1014
+#define CSI_C4					CSW_C4
+#define CSI_MAC10				CSW_MAC10
+#define CSI_AUG					CSW_AUG
+#define CSI_SMOKEGRENADE		CSW_SMOKEGRENADE
+#define CSI_ELITE				CSW_ELITE
+#define CSI_FIVESEVEN			CSW_FIVESEVEN
+#define CSI_UMP45				CSW_UMP45
+#define CSI_SG550				CSW_SG550
+#define CSI_GALIL				CSW_GALIL
+#define CSI_FAMAS				CSW_FAMAS
+#define CSI_USP					CSW_USP
+#define CSI_GLOCK18				CSW_GLOCK18
+#define CSI_AWP					CSW_AWP
+#define CSI_MP5NAVY				CSW_MP5NAVY
+#define CSI_M249				CSW_M249
+#define CSI_M3					CSW_M3
+#define CSI_M4A1				CSW_M4A1
+#define CSI_TMP					CSW_TMP
+#define CSI_G3SG1				CSW_G3SG1
+#define CSI_FLASHBANG			CSW_FLASHBANG
+#define CSI_DEAGLE				CSW_DEAGLE
+#define CSI_SG552				CSW_SG552
+#define CSI_AK47				CSW_AK47
+#define CSI_P90					CSW_P90
+#define CSI_SHIELDGUN			CSW_SHIELDGUN
+#define CSI_VEST				CSW_VEST		// Custom
+#define CSI_VESTHELM			CSW_VESTHELM	// Custom
+#define CSI_DEFUSER				33				// Custom
+#define CSI_NVGS				34				// Custom
+#define CSI_PRIAMMO				36				// Custom
+#define CSI_SECAMMO				37				// Custom
+
+/**
+ * Called when a player attempts to purchase an item.
+ * This is ususally called right away on buy commands issued by a player.
+ * 
+ * @note Return PLUGIN_CONTINUE to allow the purchase or return a higher action to deny.
+ *
+ * @param index			Player index.
+ * @param item			Item index, see CSI_* constants.
+ */
+forward CS_OnBuyAttempt(index, item);
+
+/**
+ * Called when a player purchases an item.
+ * This usually called right before a player gets the purchased item.
+ *
+ * @note Return PLUGIN_CONTINUE to allow the purchase or return a higher action to deny.
+ *
+ * @param index			Player index.
+ * @param item			Item index, see CSI_* constants.
+ */
+forward CS_OnBuy(index, item);

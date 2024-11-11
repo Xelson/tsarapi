@@ -1,10 +1,16 @@
-/* Engine stocks
-*
-* by the AMX Mod X Development Team
-*  thanks to AssKicR, Freecode and T(+)rget
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+// Special thanks to AssKicR, Freecode, and T(+)rget.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// Engine Stocks
+//
 
 #if defined _engine_stocks_included
   #endinput
@@ -153,32 +159,19 @@ stock set_rendering(index, fx=kRenderFxNone, r=255, g=255, b=255, render=kRender
 /* Set flags on an entity */
 stock set_entity_flags(ent,flag,onoff)
 {
-	if ((entity_get_int(ent,EV_INT_flags)&flag) > 0)
+	new iFlags = entity_get_int(ent, EV_INT_flags);
+	if(iFlags & flag)
 	{
-		if (onoff == 1)
-		{
-			return 2;
-		}
-		else
-		{
-			entity_set_int(ent,EV_INT_flags,entity_get_int(ent,EV_INT_flags)-flag);
-			return 1;
-		}
+		if(onoff == 1) return 2;
+		iFlags &= ~flag;
 	}
 	else
 	{
-		if (onoff == 0)
-		{
-			return 2;
-		}
-		else
-		{
-			entity_set_int(ent,EV_INT_flags,entity_get_int(ent,EV_INT_flags)+flag);
-			return 1;
-		}
+		if(onoff == 0) return 2;
+		iFlags |= flag;
 	}
-
-	return 0;
+	entity_set_int(ent, EV_INT_flags, iFlags);
+	return 1;
 }
 
 /* If visible = 1, entity will be set to be visible, else invisible. */

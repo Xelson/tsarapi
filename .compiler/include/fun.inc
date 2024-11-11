@@ -1,9 +1,15 @@
-/* Fun functions
-*
-* by the AMX Mod X Development Team
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// Fun Functions
+//
 
 #if defined _fun_included
   #endinput
@@ -42,7 +48,7 @@ native set_user_health(index, health);
 native set_user_origin(index, const origin[3]);
 
 /* Sets player rendering mode. */
-native set_user_rendering(index, fx = kRenderFxNone, r = 255, g = 255, b = 255, render = kRenderNormal, amount = 16);
+native set_user_rendering(index, fx = kRenderFxNone, r = 0, g = 0, b = 0, render = kRenderNormal, amount = 0);
 
 /* Gives item to player, name of item can start
  * with weapon_, ammo_ and item_. This event

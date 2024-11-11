@@ -1,10 +1,11 @@
-/* AMX Mod X misc.
-*
-* by the AMX Mod X Development Team
-*  originally developed by OLO
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
 
 #if defined _amxmisc_included
   #endinput
@@ -12,19 +13,7 @@
 #define _amxmisc_included
 
 #if !defined _amxmodx_included
-	#if defined AMXMOD_BCOMPAT
-		#include <amxmod>
-	#else
-		#include <amxmodx>
-	#endif
-#endif
-
-#if defined AMXMOD_BCOMPAT
-#if defined _translator_included
-#define SIMPLE_T(%1)	_T(%1)
-#else
-#define SIMPLE_T(%1)	%1
-#endif
+	#include <amxmodx>
 #endif
 
 stock is_user_admin(id)
@@ -60,11 +49,7 @@ stock cmd_access(id, level, cid, num, bool:accesssilent = false)
 	{
 		if (!accesssilent)
 		{
-#if defined AMXMOD_BCOMPAT
-			console_print(id, SIMPLE_T("You have no access to that command."));
-#else
 			console_print(id,"%L",id,"NO_ACC_COM");
-#endif
 		}
 		return 0;
 	}
@@ -72,11 +57,7 @@ stock cmd_access(id, level, cid, num, bool:accesssilent = false)
 	{
 		new hcmd[32], hinfo[128], hflag;
 		get_concmd(cid,hcmd,31,hflag,hinfo,127,level);
-#if defined AMXMOD_BCOMPAT
-		console_print(id, SIMPLE_T("Usage:  %s %s"), hcmd, SIMPLE_T(hinfo));
-#else
 		console_print(id,"%L:  %s %s",id,"USAGE",hcmd,hinfo);
-#endif
 		return 0;
 	}
 	
@@ -113,11 +94,7 @@ stock cmd_target(id,const arg[],flags = CMDTARGET_OBEY_IMMUNITY)
 	{
 		if ( player != find_player("blj",arg) ) 
 		{
-#if defined AMXMOD_BCOMPAT
-			console_print(id, SIMPLE_T("There are more clients matching to your argument"));
-#else
 			console_print(id,"%L",id,"MORE_CL_MATCHT");
-#endif
 			return 0;
 		}
 	}
@@ -127,11 +104,7 @@ stock cmd_target(id,const arg[],flags = CMDTARGET_OBEY_IMMUNITY)
 	}
 	if (!player) 
 	{
-#if defined AMXMOD_BCOMPAT
-		console_print(id, SIMPLE_T("Client with that name or userid not found"));
-#else
 		console_print(id,"%L",id,"CL_NOT_FOUND");
-#endif
 		return 0;
 	}
 	if (flags & CMDTARGET_OBEY_IMMUNITY) 
@@ -139,13 +112,9 @@ stock cmd_target(id,const arg[],flags = CMDTARGET_OBEY_IMMUNITY)
 		if ((get_user_flags(player) & ADMIN_IMMUNITY) && 
 			((flags & CMDTARGET_ALLOW_SELF) ? (id != player) : true) ) 
 		{
-			new imname[32];
+			new imname[MAX_NAME_LENGTH];
 			get_user_name(player,imname,31);
-#if defined AMXMOD_BCOMPAT
-			console_print(id, SIMPLE_T("Client ^"%s^" has immunity"), imname);
-#else
 			console_print(id,"%L",id,"CLIENT_IMM",imname);
-#endif
 			return 0;
 		}
 	}
@@ -153,13 +122,9 @@ stock cmd_target(id,const arg[],flags = CMDTARGET_OBEY_IMMUNITY)
 	{
 		if (!is_user_alive(player)) 
 		{
-			new imname[32];
+			new imname[MAX_NAME_LENGTH];
 			get_user_name(player,imname,31);
-#if defined AMXMOD_BCOMPAT
-			console_print(id, SIMPLE_T("That action can't be performed on dead client ^"%s^""), imname);
-#else
 			console_print(id,"%L",id,"CANT_PERF_DEAD",imname);
-#endif
 			return 0;
 		}
 	}
@@ -167,13 +132,9 @@ stock cmd_target(id,const arg[],flags = CMDTARGET_OBEY_IMMUNITY)
 	{
 		if (is_user_bot(player)) 
 		{
-			new imname[32];
+			new imname[MAX_NAME_LENGTH];
 			get_user_name(player,imname,31);
-#if defined AMXMOD_BCOMPAT
-			console_print(id, SIMPLE_T("That action can't be performed on bot ^"%s^""), imname);
-#else
 			console_print(id,"%L",id,"CANT_PERF_BOT",imname);
-#endif
 			return 0;
 		}
 	}
@@ -198,13 +159,10 @@ stock show_activity( id, const name[], const fmt[], any:... )
 		// if still not found, then register the cvar as a dummy
 		if (__amx_show_activity == 0)
 		{
-			__amx_show_activity = register_cvar("amx_show_activity", "2");
+			__amx_show_activity = register_cvar("amx_show_activity", "2", FCVAR_PROTECTED);
 		}
 	}
-#if defined AMXMOD_BCOMPAT
-	new buffer[128];
-	format_args( buffer , 127 , 2 );
-#else
+	
 	new prefix[10];
 	if (is_user_admin(id))
 	{
@@ -216,25 +174,12 @@ stock show_activity( id, const name[], const fmt[], any:... )
 	}
 	new buffer[512];
 	vformat(buffer, charsmax(buffer), fmt, 4);
-#endif
+	
 	switch(get_pcvar_num(__amx_show_activity))
 	{
-#if defined AMXMOD_BCOMPAT
-		case 2: // show name to all
-		{
-			client_print(0, print_chat, "%s %s: %s", is_user_admin(id) ? SIMPLE_T("ADMIN") : SIMPLE_T("PLAYER"), name, buffer);
-		}
-		case 1: // hide name to all
-		{
-			client_print(0, print_chat, "%s: %s", is_user_admin(id) ? SIMPLE_T("ADMIN") : SIMPLE_T("PLAYER"), buffer);
-		}
-#else
 		case 5: // hide name only to admins, show nothing to normal users
 		{
-			new __maxclients=get_maxplayers();
-			
-			
-			for (new i=1; i<=__maxclients; i++)
+			for (new i=1; i<=MaxClients; i++)
 			{
 				if (is_user_connected(i))
 				{
@@ -247,9 +192,7 @@ stock show_activity( id, const name[], const fmt[], any:... )
 		}
 		case 4: // show name only to admins, show nothing to normal users
 		{
-			new __maxclients=get_maxplayers();
-			
-			for (new i=1; i<=__maxclients; i++)
+			for (new i=1; i<=MaxClients; i++)
 			{
 				if (is_user_connected(i))
 				{
@@ -262,9 +205,7 @@ stock show_activity( id, const name[], const fmt[], any:... )
 		}
 		case 3: // show name only to admins, hide name from normal users
 		{
-			new __maxclients=get_maxplayers();
-			
-			for (new i=1; i<=__maxclients; i++)
+			for (new i=1; i<=MaxClients; i++)
 			{
 				if (is_user_connected(i))
 				{
@@ -287,7 +228,6 @@ stock show_activity( id, const name[], const fmt[], any:... )
 		{
 			client_print(0, print_chat, "%L: %s", LANG_PLAYER, prefix, buffer );
 		}
-#endif
 	}
 }
 
@@ -317,7 +257,7 @@ stock show_activity_id(idtarget, idadmin, const name[], const fmt[], any:...)
 		// if still not found, then register the cvar as a dummy
 		if (__amx_show_activity == 0)
 		{
-			__amx_show_activity = register_cvar("amx_show_activity", "2");
+			__amx_show_activity = register_cvar("amx_show_activity", "2", FCVAR_PROTECTED);
 		}
 	}
 
@@ -396,7 +336,7 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 		// if still not found, then register the cvar as a dummy
 		if (__amx_show_activity == 0)
 		{
-			__amx_show_activity = register_cvar("amx_show_activity", "2");
+			__amx_show_activity = register_cvar("amx_show_activity", "2", FCVAR_PROTECTED);
 		}
 	}
 	
@@ -404,12 +344,10 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 	new keyfmt[256];
 	new i;
 	
-	new __maxclients=get_maxplayers();
-	
 	switch( get_pcvar_num(__amx_show_activity) )
 	{
 	case 5: // hide name to admins, display nothing to normal players
-		while (i++ < __maxclients)
+		while (i++ < MaxClients)
 		{
 			if ( is_user_connected(i) )
 			{
@@ -424,7 +362,7 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 			}
 		}
 	case 4: // show name only to admins, display nothing to normal players
-		while (i++ < __maxclients)
+		while (i++ < MaxClients)
 		{
 			if ( is_user_connected(i) )
 			{
@@ -437,7 +375,7 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 			}
 		}
 	case 3: // show name only to admins, hide name from normal users
-		while (i++ < __maxclients)
+		while (i++ < MaxClients)
 		{
 			if ( is_user_connected(i) )
 			{
@@ -457,7 +395,7 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 			}
 		}
 	case 2: // show name to all users
-		while (i++ < __maxclients)
+		while (i++ < MaxClients)
 		{
 			if ( is_user_connected(i) )
 			{
@@ -467,7 +405,7 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 			}
 		}
 	case 1: // hide name from all users
-		while (i++ < __maxclients)
+		while (i++ < MaxClients)
 		{
 			if ( is_user_connected(i) )
 			{
@@ -482,12 +420,32 @@ stock show_activity_key(const KeyWithoutName[], const KeyWithName[], const ___Ad
 	}
 }
 
-stock colored_menus() 
+stock colored_menus()
 {
-	new mod_name[32];
-	get_modname(mod_name,31);
+	static ColoredMenus = -1;
 
-	return ( equal(mod_name,"cstrike") || equal(mod_name,"czero") || equal(mod_name,"dod") );
+	if (ColoredMenus == -1)
+	{
+		new const ModNames[][] = { "cstrike", "czero", "dmc", "dod", "tfc", "valve" };
+		new ModName[32];
+
+		get_modname(ModName, charsmax(ModName));
+
+		for (new Iterator = 0; Iterator < sizeof(ModNames); Iterator++)
+		{
+			if (equal(ModName, ModNames[Iterator]))
+			{
+				ColoredMenus = 1;
+
+				break;
+			}
+		}
+
+		if (ColoredMenus == -1)
+			ColoredMenus = 0;
+	}
+
+	return ColoredMenus;
 }
 
 stock cstrike_running() 
@@ -619,4 +577,16 @@ stock has_all_flags(id, const flags[])
 {
 	new FlagsNumber=read_flags(flags);
 	return ((get_user_flags(id) & FlagsNumber)==FlagsNumber);
+}
+
+/**
+ * Resets a client's menu.
+ *
+ * @note This is just a wrapper around show_menu for the sake of readability.
+ *
+ * @param index     Client to reset menu to, use 0 to reset to all clients
+ */
+stock reset_menu(index)
+{
+	show_menu(index, 0, "", 0);
 }

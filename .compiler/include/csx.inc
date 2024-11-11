@@ -1,8 +1,15 @@
-/* CSX functions
- *
- * (c) 2004, SidLuke
- * This file is provided as is (no warranties).
- */
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// CSX Functions
+//
 
 #if defined _csx_included
   #endinput
@@ -66,3 +73,19 @@ native xmod_get_maxweapons();
 native xmod_get_stats_size();
 
 /************* Shared Natives End ********************************/
+
+enum MapObjective
+{
+	MapObjective_Bomb	 = (1<<0),
+	MapObjective_Hostage = (1<<1),
+	MapObjective_Vip	 = (1<<2),
+	MapObjective_Escape  = (1<<3),
+};
+
+/**
+ * Gets current map objectives.
+ *
+ * @return 		Returns a bits sum if objectives are found, otherwise 0. 
+ * 				See MapObjective_* constants.
+ */
+native MapObjective:get_map_objectives();

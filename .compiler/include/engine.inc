@@ -1,10 +1,16 @@
-/* Engine functions
-*
-* by the AMX Mod X Development Team
-*  thanks to Vexd and mahnsawce
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+// Special thanks to Vexd and mahnsawce.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// Engine Functions
+//
 
 #if defined _engine_included
   #endinput
@@ -121,9 +127,7 @@ native fake_touch(entTouched, entToucher);
 /* 2 formats.
    Format: DispatchKeyValue("KeyName","Value") - sets keyvalues for the entity specified in the keyvalue() forward.
    Format: DispatchKeyValue(index,"KeyName","Value") - Sets keyvalue for entity not specified in keyvalue() forward. */
-#if !defined AMXMOD_BCOMPAT
 native DispatchKeyValue(...);
-#endif
 
 native get_keyvalue(entity, const szKey[], value[], maxLength);
 
@@ -133,18 +137,14 @@ native copy_keyvalue(szClassName[],sizea,szKeyName[],sizeb,szValue[],sizec);
 native DispatchSpawn(iIndex);
 
 /* Hurts/Kills players in a sphere, like an explosion, Multiplier determines damage. */
-#if !defined AMXMOD_BCOMPAT
 native radius_damage(const Float:fExplodeAt[3], iDamageMultiplier, iRadiusMultiplier);
-#endif
 
 /* Will return the contents of a point (inside map? in sky? outside map? etc.). */
 native point_contents(const Float:fCheckAt[3]);
 
 /* Trace a line from Start(X, Y, Z) to End(X, Y, Z), will return the point hit in vReturn[3]
  * and an entity index if an entity is hit. */
-#if !defined AMXMOD_BCOMPAT
 native trace_line(iIgnoreEnt, const Float:fStart[3], const Float:fEnd[3], Float:vReturn[3]);
-#endif
 
 /* Traces a hull. */
 native trace_hull(const Float:origin[3],hull,ignoredent=0,ignoremonsters=0);
@@ -207,6 +207,9 @@ forward client_PostThink(id);
 /* Forward for impulses. */
 forward client_impulse(id, impulse);
 
+/* Forward for CmdStart() on a player. */
+forward client_cmdStart(id);
+
 /* Called when an entity "thinks" (DispatchThink) */
 forward pfn_think(entid);
 
@@ -237,5 +240,31 @@ native is_visible(entity, target);
 
 //Added at twistedeuphoria's request, see funcwiki for details
 native trace_forward(const Float:start[3], const Float:angle[3], Float:give, ignoreEnt, &Float:hitX, &Float:hitY, &Float:shortestDistance, &Float:shortestDistLow, &Float:shortestDistHigh);
+
+/**
+ * Sets rendering of an entity, including player entities.
+ * This is basically the same as set_rendering() stock.
+ * 
+ * @param index		The entity index to apply the render.
+ * @param fx		The render effect. See kRenderFx* constants.
+ * @param r			The amount of red.
+ * @param g			The amount of green.
+ * @param b			The amount of blue.
+ * @param render	The render mode. See kRender* constants.
+ * @param amount	The render thickness generally. It can have others meaning depending effect/mode.
+ * @noreturn
+ */
+native set_ent_rendering(index, fx = kRenderFxNone, r = 0, g = 0, b = 0, render = kRenderNormal, amount = 0);
+
+/**
+ * Checks whether two entities intersect by comparing
+ * their absolute minimum and maximum coordinates.
+ * 
+ * @param entity    The first entity index to check.
+ * @param other     The second entity index to check.
+ *
+ * @return          true on success, false otherwise.
+ */
+native bool:entity_intersects(entity, other);
 
 #include <engine_stocks>

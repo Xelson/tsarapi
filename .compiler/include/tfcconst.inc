@@ -1,8 +1,15 @@
-/* TFCX const
- *
- * (c) 2004, SidLuke
- * This file is provided as is (no warranties).
- */
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// TFCX Constants
+//
 
 #if defined _tfcconst_included
   #endinput
@@ -65,11 +72,10 @@ enum {
 	TFC_PC_HWGUY,
 	TFC_PC_PYRO,
 	TFC_PC_SPY,
-	TFC_PC_ENGENEER,
-	TFC_PC_CIVILIAN,
+	TFC_PC_ENGENEER,	// Typo; preserved for backward compatibility
+	TFC_PC_ENGINEER = 9,
+	TFC_PC_CIVILIAN = 11,
 };
-
-#define TFC_PC_ENGINEER TFC_PC_ENGENEER
 
 // Goal items
 #define TFC_GOALITEM_BLUE   (1 << 17)

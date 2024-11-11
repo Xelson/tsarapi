@@ -1,9 +1,15 @@
-/* Messaging functions (now part of Core)
- *
- * by the AMX Mod X Development Team
- *
- * This file is provided as is (no warranties).
- */
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// Message Functions
+//
 
 #if defined _coremsg_included
   #endinput
@@ -17,6 +23,7 @@
  * intermission and many many others messages.
  * See HL SDK for more examples. */
 native message_begin(dest, msg_type, const origin[3] = {0,0,0}, player = 0);
+native message_begin_f(dest, msg_type, const Float:origin[3] = {0.0,0.0,0.0}, player = 0);
 native message_end();
 native write_byte(x);
 native write_char(x);
@@ -24,7 +31,9 @@ native write_short(x);
 native write_long(x);
 native write_entity(x);
 native write_angle(x);
+native write_angle_f(Float:x);
 native write_coord(x);
+native write_coord_f(Float:x);
 native write_string(const x[]);
 
 /* These are the same as above, except that the messages sent
@@ -36,6 +45,7 @@ native write_string(const x[]);
  * NOTE! These natives are experimental.
  */
 native emessage_begin(dest, msg_type, const origin[3] = {0,0,0}, player = 0);
+native emessage_begin_f(dest, msg_type, const Float:origin[3] = {0.0,0.0,0.0}, player = 0);
 native emessage_end();
 native ewrite_byte(x);
 native ewrite_char(x);
@@ -43,7 +53,9 @@ native ewrite_short(x);
 native ewrite_long(x);
 native ewrite_entity(x);
 native ewrite_angle(x);
+native ewrite_angle_f(Float:x);
 native ewrite_coord(x);
+native ewrite_coord_f(Float:x);
 native ewrite_string(const x[]);
 
 /* Sets/Gets what engine messages are blocked. */

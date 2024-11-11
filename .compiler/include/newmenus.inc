@@ -1,10 +1,11 @@
-/* AMX Mod X constants
-*
-* by the AMX Mod X Development Team
-*  originally developed by OLO
-*
-* This file is provided as is (no warranties).
-*/
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
 
 #if defined _newmenus_included
   #endinput
@@ -12,6 +13,10 @@
 #define _newmenus_included
 
 #define MEXIT_ALL		1		/* Menu will have an exit option (default)*/
+#define MEXIT_FORCE		2		/* Menu will have an exit option, even when pagination is disabled. 
+ * There have to be less than 10 items in the menu or it won't appear. The exit 
+ * option will be appended to the last item with no extra slot padding. If you 
+ * want it in the 10th slot you have to pad it manually with menu_addblank2 */
 #define MEXIT_NEVER		-1		/* Menu will not have an exit option */
 
 #define MPROP_PERPAGE	1		/* Number of items per page (param1 = number, 0=no paginating, 7=default) */
@@ -111,13 +116,21 @@ native menu_items(menu);
  * when the item is less than 0 (i.e. calling this from a cancelled menu will 
  * result in an error).
  *
+ * Starting with 1.8.3 this allows to specify a menu timeout similar to the 
+ * show_menu native. If the menu exists on the client past the timeout *any* 
+ * further action will send the MENU_TIMEOUT status code to the menu handler.
+ * That includes actions which would otherwise send MENU_EXIT, such as the
+ * client selecting an item or disconnecting and calling menu_cancel or 
+ * menu_destroy on a live menu.
+ *
  * @param id			Client index.
  * @param menu			Menu resource identifier.
  * @param page			Page to start from (starting from 0).
+ * @param time			If >=0 menu will timeout after this many seconds
  * @noreturn
  * @error				Invalid menu resource or client index.
  */
-native menu_display(id, menu, page=0);
+native menu_display(id, menu, page=0, time=-1);
 
 /**
  * Given a page on a menu and a keypress on that page, returns the item id selected.
@@ -218,7 +231,10 @@ native player_menu_info(id, &menu, &newmenu, &menupage=0);
 
 /**
  * Adds a blank line to a menu.
- *
+ * 
+ * When using slot=1 this might break your menu. To achieve this functionality
+ * menu_addblank2 should be used.
+ * 
  * @param menu			Menu resource identifier.
  * @param slot			1 (default) if the line should shift the numbering down.
  * 						0 if the line should be a visual shift only.
@@ -230,6 +246,9 @@ native menu_addblank(menu, slot=1);
 /**
  * Adds a text line to a menu.  Only available in amxmodx 1.8.1 and above.
  *
+ * When using slot=1 this might break your menu. To achieve this functionality
+ * menu_addtext2 should be used.
+ * 
  * @param menu			Menu resource identifier.
  * @param text			Text to add.
  * @param slot			1 (default) if the line should shift the numbering down.
@@ -238,6 +257,41 @@ native menu_addblank(menu, slot=1);
  * @error				Invalid menu resource.
  */
 native menu_addtext(menu, const text[], slot=1);
+
+/**
+ * Adds a blank line to a menu, always shifting the numbering down.
+ * 
+ * This will add a special item to create a blank line. It will affect the menu
+ * item count and pagination. These items can be modified later but will ignore 
+ * access and item callback results.
+ * 
+ * Only available in 1.8.3 and above.
+ * 
+ * @param menu          Menu resource identifier.
+ * 
+ * @return              1 on success, 0 on failure.
+ * @error               Invalid menu resource.
+ *                      Too many items on non-paginated menu (max is 10)
+ */
+native menu_addblank2( menu );
+
+/**
+ * Adds a text line to a menu, always shifting the numbering down.
+ * 
+ * This will add a special item to create a blank line. It will affect the menu
+ * item count and pagination. These items can be modified later but will ignore 
+ * access and item callback results.
+ * 
+ * Only available in 1.8.3 and above.
+ *
+ * @param menu          Menu resource identifier.
+ * @param text          Text to add.
+ * 
+ * @return              1 on success, 0 on failure.
+ * @error               Invalid menu resource.
+ *                      Too many items on non-paginated menu (max is 10)
+ */
+native menu_addtext2( menu, const text[] );
 
 /**
  * Sets a menu property.

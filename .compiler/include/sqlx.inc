@@ -1,6 +1,15 @@
-/**
- * SQLX - Newer version of SQL stuff
- */
+// vim: set ts=4 sw=4 tw=99 noet:
+//
+// AMX Mod X, based on AMX Mod by Aleksander Naszko ("OLO").
+// Copyright (C) The AMX Mod X Development Team.
+//
+// This software is licensed under the GNU General Public License, version 3 or higher.
+// Additional exceptions apply. For full license details, see LICENSE.txt or visit:
+//     https://alliedmods.net/amxmodx-license
+
+//
+// SQLX - Newer SQL Database API
+//
 
 #if defined _sqlx_included
   #endinput
@@ -52,6 +61,22 @@ native SQL_FreeHandle(Handle:h);
  * Returns Empty_Handle on failure.
  */
 native Handle:SQL_Connect(Handle:cn_tuple, &errcode, error[], maxlength);
+
+
+/**
+ * Sets the character set of the current connection. 
+ * Like SET NAMES .. in mysql, but stays after connection problems.
+ * 
+ * If a connection tuple is supplied, this should be called before SQL_Connect or SQL_ThreadQuery.
+ * Also note the change will remain until you call this function with another value.
+ * 
+ * Example: "utf8", "latin1"
+ *
+ * @param h					Database or connection tuple Handle.
+ * @param charset			The character set string to change to.
+ * @return					True, if character set was changed, false otherwise.
+ */
+native bool:SQL_SetCharset(Handle:h, const charset[]);
 
 
 /**
@@ -368,6 +393,11 @@ stock Handle:SQL_MakeStdTuple(timeout = 0)
 	get_cvar_string("amx_sql_pass", pass, 31);
 	get_cvar_string("amx_sql_type", set_type, 11);
 	get_cvar_string("amx_sql_db", db, 127);
+
+	if (timeout <= 0)
+	{
+		timeout = get_cvar_num("amx_sql_timeout");
+	}
 	
 	SQL_GetAffinity(get_type, 12);
 	
